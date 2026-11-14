@@ -1,0 +1,11 @@
+--- a/src/core/backlog.ts
++++ b/src/core/backlog.ts
+@@ -1596,6 +1596,8 @@
+ 		// task files are committed, so include their filesystem state for allocation.
+ 		const worktreeEntries = await this.loadWorktreeTaskStateEntries(taskPrefix);
+ 		const occupiedIds = new Set(snapshot.identityIndex.getOccupiedIds());
++		// Project Inbox: archived issues retain their identity permanently.
++		for (const task of await this.fs.listArchivedTasks()) occupiedIds.add(task.id);
+ 		for (const task of completedTasks) occupiedIds.add(task.id);
+ 		for (const entry of worktreeEntries) {
+ 			if (entry.type === "task" || entry.type === "completed") occupiedIds.add(entry.id);

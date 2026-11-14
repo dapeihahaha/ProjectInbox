@@ -1,0 +1,282 @@
+--- a/src/server/index.ts
++++ b/src/server/index.ts
+@@ -434,6 +434,15 @@
+ 					},
+ 					"/api/tasks/:id/complete": {
+ 						POST: async (req: Request & { params: { id: string } }) => await this.handleCompleteTask(req.params.id),
++					},
++					"/api/tasks/:id/handoff": {
++						GET: async (req: Request & { params: { id: string } }) => await this.handleAgentHandoff([req.params.id], new URL(req.url).searchParams.get("deploy") === "1"),
++					},
++					"/api/tasks/handoff": {
++						GET: async (req: Request) => {
++							const params = new URL(req.url).searchParams;
++							return await this.handleAgentHandoff(params.getAll("id"), params.get("deploy") === "1");
++						},
+ 					},
+ 					"/api/tasks/:id/demote": {
+ 						POST: async (req: Request & { params: { id: string } }) => await this.handleDemoteTask(req.params.id),
+@@ -1072,6 +1081,26 @@
+ 		return Response.json(await loadTaskDetail(this.core, resolved, { includeCrossBranch: true }));
+ 	}
+ 
++	private async handleAgentHandoff(taskIds: string[], deploy = false): Promise<Response> {
++		if (taskIds.length === 0 || taskIds.some((id) => !/^TASK-\d+(?:\.\d+)*$/i.test(id))) {
++			return Response.json({ error: "仅支持本机已保存的任务" }, { status: 400 });
++		}
++		try {
++			const root = this.core.filesystem.rootDir;
++			const process = Bun.spawn([join(root, ".venv/bin/python"), "-m", "server.cli", "--home", root, "handoff", ...(deploy ? ["--deploy"] : []), ...taskIds.map((id) => id.toUpperCase())], {
++				cwd: root, stdout: "pipe", stderr: "pipe",
++			});
++			const [output, errors, exitCode] = await Promise.all([
++				new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited,
++			]);
++			const result = JSON.parse(exitCode === 0 ? output : errors);
++			if (exitCode !== 0) return Response.json({ error: result.error || "无法生成交接指令" }, { status: 400 });
++			return Response.json(result, { headers: { "Cache-Control": "no-store" } });
++		} catch {
++			return Response.json({ error: "无法生成交接指令，请检查 Project Inbox 本机安装" }, { status: 500 });
++		}
++	}
++
+ 	private async handleUpdateTask(req: Request, taskId: string): Promise<Response> {
+ 		const updates = await req.json();
+ 		const dueDate = parseDueDatePayload(updates?.dueDate, true);
+--- a/src/web/lib/api.ts
++++ b/src/web/lib/api.ts
+@@ -331,6 +331,17 @@
+ 		return this.fetchJson<TaskDetail>(`${API_BASE}/task/${encodeURIComponent(id)}`);
+ 	}
+ 
++	async fetchAgentHandoff(ids: string | string[], deploy = false): Promise<{ text: string }> {
++		const query = deploy ? "deploy=1" : "";
++		const url = typeof ids === "string"
++			? `${API_BASE}/tasks/${encodeURIComponent(ids)}/handoff${query ? `?${query}` : ""}`
++			: `${API_BASE}/tasks/handoff?${new URLSearchParams(ids.map((id) => ["id", id]))}${query ? `&${query}` : ""}`;
++		const response = await fetch(url, { cache: "no-store" });
++		const result = await response.json();
++		if (!response.ok) throw new Error(result.error || "无法生成交接指令");
++		return result;
++	}
++
+ 	async createTask(task: Omit<Task, "id" | "createdDate">): Promise<Task> {
+ 		return this.fetchJson<Task>(`${API_BASE}/tasks`, {
+ 			method: "POST",
+--- a/src/web/components/TaskDetailsModal.tsx
++++ b/src/web/components/TaskDetailsModal.tsx
+@@ -20,6 +20,7 @@
+ import { findDirectSubtasks, findParentTask, summarizeSubtaskProgress } from "../../utils/task-subtasks.ts";
+ import { isTerminalStatus } from "../../utils/terminal-status.ts";
+ import { createUrlPath } from "../utils/urlHelpers";
++import { useAgentHandoff } from "../hooks/useAgentHandoff";
+ 
+ interface Props {
+   task?: Task | TaskDetail; // Optional for create mode
+@@ -216,6 +217,7 @@
+   const [saving, setSaving] = useState(false);
+   const [demoting, setDemoting] = useState(false);
+   const [error, setError] = useState<string | null>(null);
++  const { copying, handoffText, copyMessage, copyForAgent, deploy, setDeploy } = useAgentHandoff(task ? [task.id] : [], isOpen);
+ 
+   // Title field for create mode
+   const [title, setTitle] = useState(task?.title || "");
+@@ -1136,7 +1138,30 @@
+       maxWidthClass="max-w-5xl"
+       disableEscapeClose={mode === "edit" || mode === "create" || demoting}
+       actions={
+-		<div className="flex flex-nowrap items-center justify-end gap-2">
++		<div className="flex flex-wrap items-center justify-end gap-2">
++          {task && mode === "preview" && !isOpenDraft && task.source !== "completed" && isLocalEditableTask(task) && !isFromOtherBranch && (
++            <>
++            <label className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
++              <input
++                type="checkbox"
++                aria-label="完成后直接合并部署"
++                checked={deploy}
++                disabled={copying}
++                onChange={(event) => setDeploy(event.target.checked)}
++                className="h-4 w-4 cursor-pointer accent-stone-600"
++              />
++              完成后直接合并部署
++            </label>
++            <button
++              type="button"
++              onClick={() => void copyForAgent()}
++              disabled={copying || demoting}
++              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-stone-500 disabled:opacity-50"
++            >
++              {copying ? "正在生成…" : "复制给 Agent"}
++            </button>
++            </>
++          )}
+ 		          {isDoneStatus && mode === "preview" && !isCreateMode && !isFromOtherBranch && (
+ 		            <button
+ 		              onClick={handleComplete}
+@@ -1207,6 +1232,17 @@
+     >
+       {error && (
+         <div role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</div>
++      )}
++      {copyMessage && <div role="status" className="mb-3 text-sm text-gray-700 dark:text-gray-300">{copyMessage}</div>}
++      {handoffText && (
++        <textarea
++          aria-label="Agent 执行指令"
++          readOnly
++          value={handoffText}
++          rows={10}
++          onFocus={(event) => event.currentTarget.select()}
++          className="mb-3 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-3 text-sm text-gray-900 dark:text-gray-100"
++        />
+       )}
+ 
+ 		<fieldset disabled={demoting} className="contents" aria-busy={demoting}>
+--- a/src/web/components/Board.tsx
++++ b/src/web/components/Board.tsx
+@@ -15,6 +15,7 @@
+ import CleanupModal from './CleanupModal';
+ import LabelFilterDropdown from './LabelFilterDropdown';
+ import { SuccessToast } from './SuccessToast';
++import { useAgentHandoff } from '../hooks/useAgentHandoff';
+ 
+ interface BoardProps {
+   onEditTask: (task: Task) => void;
+@@ -84,6 +85,7 @@
+ }) => {
+   const [updateError, setUpdateError] = useState<string | null>(null);
+   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
++  const { copying, handoffText, copyMessage, copyForAgent, deploy, setDeploy } = useAgentHandoff(selectedTaskIds);
+   const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null);
+   // True while a drag that moves the whole selection is in flight, so every selected card can
+   // carry the same dragging treatment as the grabbed one.
+@@ -682,6 +684,25 @@
+             <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+               已选 {selectedTaskIds.length} 项
+             </span>
++            <button
++              type="button"
++              className={BOARD_FILTER_BUTTON_CLASS}
++              disabled={copying}
++              onClick={() => void copyForAgent()}
++            >
++              {copying ? '正在生成…' : '复制给 Agent'}
++            </button>
++            <label className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
++              <input
++                type="checkbox"
++                aria-label="完成后直接合并部署"
++                checked={deploy}
++                disabled={copying}
++                onChange={(event) => setDeploy(event.target.checked)}
++                className="h-4 w-4 cursor-pointer accent-stone-600"
++              />
++              完成后直接合并部署
++            </label>
+             <label className="sr-only" htmlFor="batch-move-status">
+               将选中任务移动到
+             </label>
+@@ -711,6 +732,17 @@
+             </button>
+           </div>
+         )}
++        {copyMessage && <div role="status" className="text-sm text-gray-700 dark:text-gray-300">{copyMessage}</div>}
++        {handoffText && (
++          <textarea
++            aria-label="Agent 执行指令"
++            readOnly
++            value={handoffText}
++            rows={10}
++            onFocus={(event) => event.currentTarget.select()}
++            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-3 text-sm text-gray-900 dark:text-gray-100"
++          />
++        )}
+         <div className="flex flex-wrap items-center gap-3" role="toolbar" aria-label="看板视图">
+             <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-800/50 transition-colors duration-200">
+               <button
+--- a/src/web/components/TaskCard.tsx
++++ b/src/web/components/TaskCard.tsx
+@@ -221,6 +221,7 @@
+           onEdit(task);
+         }}
+ 		onKeyDown={(event) => {
++			if (event.target !== event.currentTarget) return;
+ 			if (event.key === 'Enter' || event.key === ' ') {
+ 				event.preventDefault();
+ 				if (onSelect && !isFromOtherBranch && (event.ctrlKey || event.metaKey || event.shiftKey)) {
+@@ -244,10 +245,20 @@
+         )}
+ 
+         {/* Header row with task metadata */}
+-        <div className="flex items-center justify-between gap-2 mb-1.5">
+-          <div className="flex min-w-0 items-center gap-2">
++        <div className="flex items-start justify-between gap-2 mb-1.5">
++          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
++            {onSelect && !isFromOtherBranch && (
++              <input
++                type="checkbox"
++                aria-label={`选择 ${task.id}`}
++                checked={isSelected}
++                onClick={(event) => event.stopPropagation()}
++                onChange={() => onSelect({ shiftKey: false })}
++                className="h-4 w-4 shrink-0 cursor-pointer accent-stone-600"
++              />
++            )}
+             <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500 font-mono transition-colors duration-200">{task.id}</span>
+-            <TaskTypeBadge type={task.type} availableTypes={availableTypes} className="min-w-0" />
++            <TaskTypeBadge type={task.type} availableTypes={availableTypes} className="min-w-0 shrink-0" />
+             <ProjectBadge project={task.project} availableProjects={availableProjects} className="min-w-0" />
+           </div>
+           {(acceptanceCriteriaProgress || priorityBadge) && (
+--- /dev/null
++++ b/src/web/hooks/useAgentHandoff.ts
+@@ -0,0 +1,50 @@
++import { useEffect, useRef, useState } from "react";
++import { apiClient } from "../lib/api";
++
++export function useAgentHandoff(taskIds: string[], enabled = true) {
++	const identity = enabled ? taskIds.join(",") : "";
++	const currentIdentity = useRef(identity);
++	currentIdentity.current = identity;
++	const requestSequence = useRef(0);
++	const [copying, setCopying] = useState(false);
++	const [handoffText, setHandoffText] = useState("");
++	const [copyMessage, setCopyMessage] = useState("");
++	// 「完成后直接合并部署」只对当前这次选择生效，换任务或换选择即恢复不勾选。
++	const [deploy, setDeploy] = useState(false);
++
++	useEffect(() => {
++		requestSequence.current += 1;
++		setCopying(false);
++		setHandoffText("");
++		setCopyMessage("");
++		setDeploy(false);
++		return () => { requestSequence.current += 1; };
++	}, [identity]);
++
++	const copyForAgent = async () => {
++		if (!identity || copying) return;
++		const request = ++requestSequence.current;
++		const isCurrent = () => requestSequence.current === request && currentIdentity.current === identity;
++		setCopying(true);
++		setHandoffText("");
++		setCopyMessage("");
++		try {
++			const { text } = await apiClient.fetchAgentHandoff(taskIds.length === 1 ? taskIds[0]! : taskIds, deploy);
++			if (!isCurrent()) return;
++			try {
++				await navigator.clipboard.writeText(text);
++				if (isCurrent()) setCopyMessage(`已复制 ${taskIds.length} 项${deploy ? "（含完成后合并部署授权）" : ""}，请粘贴到 Agent 会话发送`);
++			} catch {
++				if (!isCurrent()) return;
++				setHandoffText(text);
++				setCopyMessage("自动复制失败，请选中下方指令手动复制");
++			}
++		} catch (err) {
++			if (isCurrent()) setCopyMessage(err instanceof Error ? err.message : "无法生成交接指令");
++		} finally {
++			if (isCurrent()) setCopying(false);
++		}
++	};
++
++	return { copying, handoffText, copyMessage, copyForAgent, deploy, setDeploy };
++}

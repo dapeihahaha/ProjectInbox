@@ -1,0 +1,3242 @@
+--- a/src/web/App.tsx
++++ b/src/web/App.tsx
+@@ -456,7 +456,7 @@
+     } catch (error) {
+       if (loadAllDataRequestRef.current === requestId) {
+         console.error('Failed to load data:', error);
+-        applyLoadError(error instanceof Error ? error : new Error('Failed to load data'));
++        applyLoadError(error instanceof Error ? error : new Error('数据加载失败'));
+       }
+     } finally {
+       if (loadAllDataRequestRef.current === requestId) {
+@@ -484,7 +484,7 @@
+   // Update document title when project name changes
+   React.useEffect(() => {
+     if (projectName) {
+-      document.title = `${projectName} - Task Management`;
++      document.title = `${projectName} - 任务管理`;
+     }
+   }, [projectName]);
+ 
+@@ -919,7 +919,7 @@
+       <ThemeProvider>
+         <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900" role="status">
+           <LoadingSpinner size="md" text="" />
+-          <span className="sr-only">Loading</span>
++          <span className="sr-only">加载中</span>
+         </div>
+       </ThemeProvider>
+     );
+@@ -1008,7 +1008,7 @@
+                 <Navigate
+                   to={{ pathname: '/board', search: location.search }}
+                   replace
+-                  state={{ taskRouteError: 'That task link is not valid.' } satisfies TaskRouteNavigationState}
++                  state={{ taskRouteError: '任务链接无效。' } satisfies TaskRouteNavigationState}
+                 />
+               }
+             />
+@@ -1021,7 +1021,7 @@
+                 <Navigate
+                   to={{ pathname: '/tasks', search: location.search }}
+                   replace
+-                  state={{ taskRouteError: 'That task link is not valid.' } satisfies TaskRouteNavigationState}
++                  state={{ taskRouteError: '任务链接无效。' } satisfies TaskRouteNavigationState}
+                 />
+               }
+             />
+@@ -1064,7 +1064,7 @@
+             className="shrink-0 font-medium underline decoration-red-300 underline-offset-2 hover:no-underline focus:outline-none focus:ring-2 focus:ring-red-500"
+             onClick={() => navigate(`${location.pathname}${location.search}`, { replace: true, state: null })}
+           >
+-            Dismiss
++            关闭
+           </button>
+         </div>
+       )}
+@@ -1102,7 +1102,7 @@
+       {/* Task Creation Confirmation Toast */}
+       {taskConfirmation && (
+         <SuccessToast
+-          message={`${taskConfirmation.isDraft ? 'Draft' : 'Task'} "${taskConfirmation.task.title}" created successfully! (${taskConfirmation.task.id.replace('task-', '')})`}
++          message={`${taskConfirmation.isDraft ? '草稿' : '任务'}「${taskConfirmation.task.title}」已创建 (${taskConfirmation.task.id.replace('task-', '')})`}
+           onDismiss={() => setTaskConfirmation(null)}
+           icon={
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+--- a/src/web/components/AcceptanceCriteriaEditor.tsx
++++ b/src/web/components/AcceptanceCriteriaEditor.tsx
+@@ -12,7 +12,7 @@
+ const AcceptanceCriteriaEditor: React.FC<Props> = ({
+   criteria: initial,
+   onChange,
+-  label = "Acceptance Criteria",
++  label = "验收条件",
+   preserveIndices = false,
+   disableToggle = false,
+ }) => {
+@@ -104,7 +104,7 @@
+               onClick={() => handleRemove(c.index)}
+               className="px-2 py-1 text-sm text-red-600 dark:text-red-400 hover:underline"
+             >
+-              Remove
++              移除
+             </button>
+           </li>
+         ))}
+@@ -115,7 +115,7 @@
+             value={newCriterion}
+             onChange={(e) => setNewCriterion(e.target.value)}
+             onInput={(e) => autoResize(e.currentTarget)}
+-            placeholder="New criterion"
++            placeholder="新验收项"
+             className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 resize-none overflow-hidden leading-5"
+           />
+           <button
+@@ -123,7 +123,7 @@
+             onClick={handleAdd}
+             className="px-2 py-1 text-sm bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-400 dark:focus:ring-blue-500 transition-colors duration-200"
+           >
+-            Add
++            添加
+           </button>
+         </li>
+       </ul>
+--- a/src/web/components/AcceptanceCriteriaProgress.tsx
++++ b/src/web/components/AcceptanceCriteriaProgress.tsx
+@@ -39,7 +39,7 @@
+ 			data-acceptance-criteria-progress
+ 			data-density={density}
+ 			role="progressbar"
+-			aria-label="Acceptance criteria progress"
++			aria-label="验收进度"
+ 			aria-valuemin={0}
+ 			aria-valuemax={progress.total}
+ 			aria-valuenow={progress.checked}
+--- a/src/web/components/Board.tsx
++++ b/src/web/components/Board.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import React, { useEffect, useMemo, useRef, useState } from 'react';
+ import { type Milestone, type Task } from '../../types';
+ import { apiClient, type ReorderTaskPayload } from '../lib/api';
+@@ -98,7 +99,7 @@
+   const [collapsedLanes, setCollapsedLanes] = useState<Record<string, boolean>>({});
+   const terminalStatus = getTerminalStatus(statuses);
+   const priorityOptions = useMemo(
+-    () => [{ label: 'All priorities', value: '' }, ...getPriorityOptions(availablePriorities)],
++    () => [{ label: '全部优先级', value: '' }, ...getPriorityOptions(availablePriorities)],
+     [availablePriorities]
+   );
+   const typeOptions = useMemo(() => getTaskTypeValues(availableTypes), [availableTypes]);
+@@ -404,7 +405,7 @@
+         onTasksUpdated(movedTasks, requestTask);
+       } else if (onRefreshData) await onRefreshData();
+     } catch (err) {
+-      setUpdateError(err instanceof Error ? err.message : 'Failed to move tasks');
++      setUpdateError(err instanceof Error ? err.message : '移动任务失败');
+     }
+   };
+ 
+@@ -417,7 +418,7 @@
+       }
+       setUpdateError(null);
+     } catch (err) {
+-      setUpdateError(err instanceof Error ? err.message : 'Failed to update task');
++      setUpdateError(err instanceof Error ? err.message : '更新任务失败');
+     }
+   };
+ 
+@@ -431,7 +432,7 @@
+       } else if (onRefreshData) await onRefreshData();
+       setUpdateError(null);
+     } catch (err) {
+-      setUpdateError(err instanceof Error ? err.message : 'Failed to reorder task');
++      setUpdateError(err instanceof Error ? err.message : '调整任务顺序失败');
+     }
+   };
+ 
+@@ -600,7 +601,7 @@
+ 
+   const getLaneLabel = (lane: typeof lanes[0]): string => {
+     if (lane.isNoMilestone || !lane.milestone) {
+-      return 'Unassigned';
++      return '未分配';
+     }
+     return lane.label;
+   };
+@@ -664,25 +665,25 @@
+       )}
+       <div className="mb-6 space-y-3">
+         <div className="flex flex-wrap items-center justify-between gap-3">
+-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">Kanban Board</h2>
++          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">任务看板</h2>
+           <button
+             className="inline-flex items-center px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 dark:focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+             onClick={onNewTask}
+           >
+-            + New Task
++            + 新建任务
+           </button>
+         </div>
+         {selectedTaskIds.length > 0 && (
+           <div
+             className="flex flex-wrap items-center gap-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 transition-colors duration-200"
+             role="toolbar"
+-            aria-label="Task selection"
++            aria-label="任务选择"
+           >
+             <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+-              {selectedTaskIds.length} selected
++              已选 {selectedTaskIds.length} 项
+             </span>
+             <label className="sr-only" htmlFor="batch-move-status">
+-              Move selected tasks to
++              将选中任务移动到
+             </label>
+             <select
+               id="batch-move-status"
+@@ -690,10 +691,10 @@
+               value={batchMoveStatus}
+               onChange={(event) => setBatchMoveStatus(event.target.value)}
+             >
+-              <option value="">Move to...</option>
++              <option value="">移动到…</option>
+               {statuses.map((status) => (
+                 <option key={status} value={status}>
+-                  {status}
++                  {uiLabel(status)}
+                 </option>
+               ))}
+             </select>
+@@ -703,14 +704,14 @@
+               disabled={!batchMoveStatus}
+               onClick={() => handleBatchMove(batchMoveStatus)}
+             >
+-              Move
++              移动
+             </button>
+             <button type="button" className={BOARD_FILTER_BUTTON_CLASS} onClick={clearSelection}>
+-              Clear
++              清除
+             </button>
+           </div>
+         )}
+-        <div className="flex flex-wrap items-center gap-3" role="toolbar" aria-label="Board view controls">
++        <div className="flex flex-wrap items-center gap-3" role="toolbar" aria-label="看板视图">
+             <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-800/50 transition-colors duration-200">
+               <button
+                 type="button"
+@@ -721,13 +722,13 @@
+                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                 }`}
+               >
+-                All Tasks
++                全部任务
+               </button>
+               <button
+                 type="button"
+                 onClick={() => onLaneChange('milestone')}
+                 disabled={!hasTasksWithMilestones}
+-                title={!hasTasksWithMilestones ? 'No tasks have milestones. Assign milestones to tasks first.' : 'Group tasks by milestone'}
++                title={!hasTasksWithMilestones ? '尚未设置任务里程碑。' : '按里程碑分组'}
+                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                   !hasTasksWithMilestones
+                     ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+@@ -736,19 +737,19 @@
+                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                 }`}
+               >
+-                Milestone
++                里程碑
+               </button>
+             </div>
+             {onFiltersChange && (
+-              <div className="flex flex-wrap items-center gap-3" aria-label="Board filters">
++              <div className="flex flex-wrap items-center gap-3" aria-label="看板筛选">
+                 <select
+-                  aria-label="Filter board by assignee"
++                  aria-label="按负责人筛选"
+                   value={filterAssignee}
+                   onChange={e => onFiltersChange({ assignee: e.target.value, labels: normalizedFilterLabels, priority: filterPriority, taskType: filterType, project: filterProject })}
+                   className={BOARD_FILTER_SELECT_CLASS}
+                 >
+-                  <option value="">All assignees</option>
+-                  <option value="__unassigned__">Unassigned</option>
++                  <option value="">全部负责人</option>
++                  <option value="__unassigned__">未分配</option>
+                   {uniqueAssignees.map(a => (
+                     <option key={a} value={a}>{a}</option>
+                   ))}
+@@ -763,25 +764,25 @@
+                 />
+ 
+                 <select
+-                  aria-label="Filter board by type"
++                  aria-label="按类型筛选"
+                   value={filterType}
+                   onChange={e => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: filterPriority, taskType: e.target.value, project: filterProject })}
+                   className={BOARD_FILTER_SELECT_CLASS}
+                 >
+-                  <option value="">All types</option>
++                  <option value="">全部类型</option>
+                   {typeOptions.map(type => (
+-                    <option key={type} value={type}>{type}</option>
++                    <option key={type} value={type}>{uiLabel(type)}</option>
+                   ))}
+                 </select>
+ 
+                 {projectOptions.length > 0 && (
+                   <select
+-                    aria-label="Filter board by project"
++                    aria-label="按项目筛选"
+                     value={filterProject}
+                     onChange={e => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: filterPriority, taskType: filterType, project: e.target.value })}
+                     className={BOARD_FILTER_SELECT_CLASS}
+                   >
+-                    <option value="">All projects</option>
++                    <option value="">全部项目</option>
+                     {projectOptions.map(project => (
+                       <option key={project} value={project}>{project}</option>
+                     ))}
+@@ -789,13 +790,13 @@
+                 )}
+ 
+                 <select
+-                  aria-label="Filter board by priority"
++                  aria-label="按优先级筛选"
+                   value={filterPriority}
+                   onChange={e => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: e.target.value, taskType: filterType, project: filterProject })}
+                   className={BOARD_FILTER_SELECT_CLASS}
+                 >
+                   {priorityOptions.map(opt => (
+-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
++                    <option key={opt.value} value={opt.value}>{uiLabel(opt.label)}</option>
+                   ))}
+                 </select>
+ 
+@@ -805,7 +806,7 @@
+                     onClick={() => onFiltersChange({ assignee: '', labels: [], priority: '', taskType: '', project: '' })}
+                     className={BOARD_FILTER_BUTTON_CLASS}
+                   >
+-                    Clear filters
++                    清除筛选
+                   </button>
+                 )}
+               </div>
+@@ -815,7 +816,7 @@
+ 
+       {loadError ? (
+         <div className="rounded-lg border border-red-200 bg-red-50 px-6 py-10 text-center dark:border-red-800 dark:bg-red-900/20" role="alert">
+-          <p className="font-medium text-red-700 dark:text-red-300">Failed to load tasks</p>
++          <p className="font-medium text-red-700 dark:text-red-300">任务加载失败</p>
+           <p className="mt-1 text-sm text-red-600 dark:text-red-400">{loadError.message}</p>
+           {onRefreshData && (
+             <button
+@@ -823,7 +824,7 @@
+               onClick={() => void onRefreshData()}
+               className="mt-4 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+             >
+-              Retry
++              重试
+             </button>
+           )}
+         </div>
+--- a/src/web/components/BoardLoadingSkeleton.tsx
++++ b/src/web/components/BoardLoadingSkeleton.tsx
+@@ -13,7 +13,7 @@
+ export function BoardLoadingSkeleton({ message, columnCount }: BoardLoadingSkeletonProps) {
+ 	const columns = columnCount && columnCount > 0 ? columnCount : 3;
+ 	return (
+-		<div className="relative" role="status" aria-label="Loading tasks">
++		<div className="relative" role="status" aria-label="正在加载任务">
+ 			<div className="overflow-x-auto pb-2" aria-hidden="true">
+ 				<div className="flex flex-row flex-nowrap gap-4 w-full">
+ 					{Array.from({ length: columns }, (_, column) => (
+@@ -43,7 +43,7 @@
+ 						aria-hidden="true"
+ 					/>
+ 				)}
+-				<span className="sr-only">{message ?? "Loading tasks"}</span>
++				<span className="sr-only">{message ?? "正在加载任务"}</span>
+ 			</div>
+ 		</div>
+ 	);
+--- a/src/web/components/BranchIndexingIndicator.tsx
++++ b/src/web/components/BranchIndexingIndicator.tsx
+@@ -58,9 +58,9 @@
+ 					aria-hidden="true"
+ 				/>
+ 				<span aria-hidden="true" className="hidden sm:inline">
+-					Indexing branches
++					正在索引分支
+ 				</span>
+-				<span className="sr-only">{detail ?? "Indexing branches"}</span>
++				<span className="sr-only">{detail ?? "正在索引分支"}</span>
+ 			</div>
+ 			<div
+ 				aria-hidden="true"
+--- a/src/web/components/ChipInput.tsx
++++ b/src/web/components/ChipInput.tsx
+@@ -68,7 +68,7 @@
+ 	                  type="button"
+ 	                  onClick={() => removeChip(index)}
+ 	                  className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-sm p-0.5 transition-colors duration-200"
+-	                  aria-label={`Remove ${item}`}
++	                  aria-label={`移除 ${item}`}
+ 	                >
+ 	                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+ 	                    <path
+--- a/src/web/components/CleanupModal.tsx
++++ b/src/web/components/CleanupModal.tsx
+@@ -18,13 +18,13 @@
+ }
+ 
+ const AGE_OPTIONS = [
+-	{ label: "1 day", value: 1 },
+-	{ label: "1 week", value: 7 },
+-	{ label: "2 weeks", value: 14 },
+-	{ label: "3 weeks", value: 21 },
+-	{ label: "1 month", value: 30 },
+-	{ label: "3 months", value: 90 },
+-	{ label: "1 year", value: 365 },
++	{ label: "1 天", value: 1 },
++	{ label: "1 周", value: 7 },
++	{ label: "2 周", value: 14 },
++	{ label: "3 周", value: 21 },
++	{ label: "1 个月", value: 30 },
++	{ label: "3 个月", value: 90 },
++	{ label: "1 年", value: 365 },
+ ];
+ 
+ const CleanupModal: React.FC<CleanupModalProps> = ({ isOpen, onClose, onSuccess, dateFormat }) => {
+@@ -47,7 +47,7 @@
+ 			setPreviewCount(preview.count);
+ 			setShowConfirmation(false);
+ 		} catch (err) {
+-			setError(err instanceof Error ? err.message : 'Failed to load preview');
++			setError(err instanceof Error ? err.message : '预览加载失败');
+ 			setPreviewTasks([]);
+ 			setPreviewCount(0);
+ 		} finally {
+@@ -68,10 +68,10 @@
+ 				onSuccess(result.movedCount);
+ 				handleClose();
+ 			} else {
+-				setError(result.message || 'Cleanup failed');
++				setError(result.message || '收起失败');
+ 			}
+ 		} catch (err) {
+-			setError(err instanceof Error ? err.message : 'Failed to execute cleanup');
++			setError(err instanceof Error ? err.message : '执行收起失败');
+ 		} finally {
+ 			setIsExecuting(false);
+ 		}
+@@ -87,7 +87,7 @@
+ 	};
+ 
+ 	return (
+-		<Modal isOpen={isOpen} onClose={handleClose} title="Clean Up Completed Tasks" maxWidthClass="max-w-3xl">
++		<Modal isOpen={isOpen} onClose={handleClose} title="收起已完成任务" maxWidthClass="max-w-3xl">
+ 			<div className="space-y-6">
+ 				{/* Age Selector */}
+ 				<div>
+@@ -125,7 +125,7 @@
+ 				{/* Loading Preview */}
+ 				{isLoadingPreview && (
+ 					<div className="text-center py-4">
+-						<div className="text-gray-600 dark:text-gray-400">Loading preview...</div>
++						<div className="text-gray-600 dark:text-gray-400">正在加载预览…</div>
+ 					</div>
+ 				)}
+ 
+@@ -189,7 +189,7 @@
+ 							disabled={isExecuting}
+ 							className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors duration-200"
+ 						>
+-							Cancel
++							取消
+ 						</button>
+ 
+ 					{selectedAge !== null && previewCount > 0 && (
+@@ -208,7 +208,7 @@
+ 										disabled={isExecuting}
+ 										className="px-4 py-2 text-sm font-medium text-white bg-red-500 dark:bg-red-600 rounded-md hover:bg-red-600 dark:hover:bg-red-700 disabled:opacity-50 transition-colors duration-200"
+ 									>
+-										{isExecuting ? 'Moving Tasks...' : `Move ${previewCount} Task${previewCount !== 1 ? 's' : ''}`}
++										{isExecuting ? '正在移动任务…' : `Move ${previewCount} Task${previewCount !== 1 ? 's' : ''}`}
+ 									</button>
+ 								)}
+ 						</>
+--- a/src/web/components/DecisionDetail.tsx
++++ b/src/web/components/DecisionDetail.tsx
+@@ -50,7 +50,7 @@
+ 					hideToolbar={false}
+ 					data-color-mode={theme}
+ 					textareaProps={{
+-						placeholder: 'Write your decision documentation here...',
++						placeholder: '在此撰写决策…',
+ 						style: { 
+ 							fontSize: '14px',
+ 							resize: 'none'
+@@ -168,7 +168,7 @@
+ 
+ 	const handleSave = async () => {
+ 		if (!decisionTitle.trim()) {
+-			console.error('Decision title is required');
++			console.error('请填写决策标题');
+ 			return;
+ 		}
+ 
+@@ -243,8 +243,8 @@
+ 					<svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+ 					</svg>
+-					<h3 className="mt-2 text-sm font-medium text-gray-900">No decision selected</h3>
+-					<p className="mt-1 text-sm text-gray-500">Select a decision from the sidebar to view its content.</p>
++					<h3 className="mt-2 text-sm font-medium text-gray-900">尚未选择决策</h3>
++					<p className="mt-1 text-sm text-gray-500">从侧栏选择决策以查看内容。</p>
+ 				</div>
+ 			</div>
+ 		);
+@@ -253,7 +253,7 @@
+ 	if (isLoading) {
+ 		return (
+ 			<div className="flex-1 flex items-center justify-center">
+-				<div className="text-gray-500">Loading...</div>
++				<div className="text-gray-500">加载中…</div>
+ 			</div>
+ 		);
+ 	}
+@@ -276,7 +276,7 @@
+ 									value={decisionTitle}
+ 									onChange={(e) => setDecisionTitle(e.target.value)}
+ 									className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors duration-200"
+-									placeholder="Decision title"
++									placeholder="决策标题"
+ 								/>
+ 							) : (
+ 								<h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 transition-colors duration-200">
+@@ -294,14 +294,14 @@
+ 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+ 									</svg>
+-									<span>Decision</span>
++									<span>决策</span>
+ 								</div>
+ 								{decision?.date && (
+ 									<div className="flex items-center space-x-2">
+ 										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+ 										</svg>
+-										<span>Date: <StoredDate value={decision.date} dateFormat={dateFormat} /></span>
++										<span>日期： <StoredDate value={decision.date} dateFormat={dateFormat} /></span>
+ 									</div>
+ 								)}
+ 								{decision?.status && (
+@@ -328,7 +328,7 @@
+ 										<svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+ 										</svg>
+-										Edit
++										编辑
+ 								</button>
+ 							) : null}
+ 							{isEditing && (
+@@ -337,7 +337,7 @@
+ 											onClick={handleCancelEdit}
+ 											className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200"
+ 										>
+-											Cancel
++											取消
+ 										</button>
+ 									<button
+ 										onClick={handleSave}
+@@ -351,7 +351,7 @@
+ 											<svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+ 											</svg>
+-										{isSaving ? 'Saving...' : 'Save'}
++										{isSaving ? '保存中…' : '保存'}
+ 									</button>
+ 								</div>
+ 							)}
+--- a/src/web/components/DependencyGraphSection.tsx
++++ b/src/web/components/DependencyGraphSection.tsx
+@@ -24,8 +24,8 @@
+ 
+ 
+ const DIRECTIONS: Array<{ direction: DependencyDirection; heading: string }> = [
+-  { direction: 'dependencies', heading: 'Depends on' },
+-  { direction: 'dependents', heading: 'Dependents' },
++  { direction: 'dependencies', heading: '前置依赖' },
++  { direction: 'dependents', heading: '后续依赖' },
+ ];
+ 
+ const BADGE_CLASS = 'shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium';
+@@ -48,7 +48,7 @@
+   if (node.completed) {
+     return (
+       <span className={`${BADGE_CLASS} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300`}>
+-        Completed
++        已完成
+       </span>
+     );
+   }
+@@ -60,8 +60,8 @@
+ };
+ 
+ const REPEAT_LABELS: Record<NonNullable<DependencyTreeNode['repeat']>, string> = {
+-  cycle: 'Cycle',
+-  repeat: 'Shown above',
++  cycle: '循环依赖',
++  repeat: '已在上方显示',
+ };
+ 
+ const NodeRow: React.FC<{ entry: DependencyTreeNode; direction: DependencyDirection }> = ({ entry, direction }) => {
+@@ -80,7 +80,7 @@
+         <Link
+           to={taskHref(node.id, node.title)}
+           className="min-w-0 break-words text-sm text-gray-900 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-100"
+-          aria-label={`Open ${label}`}
++          aria-label={`打开 ${label}`}
+         >
+           <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{node.id}</span>
+           {node.title ? <span className="ml-2">{node.title}</span> : null}
+--- a/src/web/components/DependencyInput.tsx
++++ b/src/web/components/DependencyInput.tsx
+@@ -52,7 +52,7 @@
+   disabled?: boolean;
+ }
+ 
+-const DependencyInput: React.FC<DependencyInputProps> = ({ value, onChange, availableTasks, suggestableTasks, currentTaskId, label = 'Dependencies', disabled }) => {
++const DependencyInput: React.FC<DependencyInputProps> = ({ value, onChange, availableTasks, suggestableTasks, currentTaskId, label = '依赖任务', disabled }) => {
+   const [inputValue, setInputValue] = useState('');
+   const [suggestions, setSuggestions] = useState<Task[]>([]);
+   const [selectedIndex, setSelectedIndex] = useState(0);
+@@ -172,7 +172,7 @@
+ 	                      type="button"
+ 	                      onClick={() => removeDependency(index)}
+ 	                      className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-sm p-0.5 transition-colors duration-200"
+-	                      aria-label={`Remove ${taskId}`}
++	                      aria-label={`移除 ${taskId}`}
+ 	                    >
+ 	                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                         <path
+@@ -196,7 +196,7 @@
+             value={inputValue}
+             onChange={handleInputChange}
+             onKeyDown={handleKeyDown}
+-            placeholder={value.length === 0 ? "Type task ID or title, then press Enter or comma" : "Add more dependencies..."}
++            placeholder={value.length === 0 ? "输入任务编号或标题，按回车或逗号添加" : "添加更多依赖…"}
+             className="w-full outline-none text-sm bg-transparent resize-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+             rows={1}
+             disabled={disabled}
+--- a/src/web/components/DocumentationDetail.tsx
++++ b/src/web/components/DocumentationDetail.tsx
+@@ -46,7 +46,7 @@
+                     hideToolbar={false}
+                     data-color-mode={theme}
+                     textareaProps={{
+-                        placeholder: 'Write your documentation here...',
++                        placeholder: '在此撰写文档…',
+                         style: {
+                             fontSize: '14px',
+                             resize: 'none'
+@@ -171,7 +171,7 @@
+                 }
+             }
+         } catch (err) {
+-            const error = err instanceof Error ? err : new Error('Failed to load document');
++            const error = err instanceof Error ? err : new Error('文档加载失败');
+             setError(error);
+             console.error('Failed to load document:', error);
+         } finally {
+@@ -181,7 +181,7 @@
+ 
+     const handleSave = useCallback(async () => {
+         if (!docTitle.trim()) {
+-            setSaveError(new Error('Document title is required'));
++            setSaveError(new Error('请填写文档标题'));
+             return;
+         }
+ 
+@@ -246,7 +246,7 @@
+                 navigate(`/documentation/${id}/${sanitizeUrlTitle(normalizedTitle)}`);
+             }
+         } catch (err) {
+-            const error = err instanceof Error ? err : new Error('Failed to save document');
++            const error = err instanceof Error ? err : new Error('文档保存失败');
+             setSaveError(error);
+             console.error('Failed to save document:', error);
+         } finally {
+@@ -282,7 +282,7 @@
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                     </svg>
+-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No document selected</h3>
++                    <h3 className="mt-2 text-sm font-medium text-gray-900">尚未选择文档</h3>
+                     <p className="mt-1 text-sm text-gray-500">Select a document from the sidebar to view its
+                         content.</p>
+                 </div>
+@@ -293,7 +293,7 @@
+     if (isLoading) {
+         return (
+             <div className="flex-1 flex items-center justify-center">
+-                <div className="text-gray-500">Loading...</div>
++                <div className="text-gray-500">加载中…</div>
+             </div>
+         );
+     }
+@@ -317,7 +317,7 @@
+                                             value={docTitle}
+                                             onChange={(e) => setDocTitle(e.target.value)}
+                                             className="text-3xl font-bold text-gray-900 dark:text-gray-100 w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors duration-200"
+-                                            placeholder="Document title"
++                                            placeholder="文档标题"
+                                         />
+                                         <input
+                                             type="text"
+@@ -345,7 +345,7 @@
+                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                   d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                         </svg>
+-                                        <span>Documentation</span>
++                                        <span>文档</span>
+                                     </div>
+                                     {document?.path && (
+                                         <div className="flex items-center space-x-2">
+@@ -363,7 +363,7 @@
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                             </svg>
+-                                            <span>Created: <StoredDate value={document.createdDate} dateFormat={dateFormat} /></span>
++                                            <span>创建于： <StoredDate value={document.createdDate} dateFormat={dateFormat} /></span>
+                                         </div>
+                                     )}
+                                 </div>
+@@ -379,7 +379,7 @@
+                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                         </svg>
+-                                        Edit
++                                        编辑
+                                     </button>
+                                 ) : (
+                                     <div className="flex items-center space-x-2">
+@@ -387,7 +387,7 @@
+ 	                                            onClick={handleCancelEdit}
+ 	                                            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200"
+ 	                                        >
+-	                                            Cancel
++	                                            取消
+ 	                                        </button>
+                                         <button
+                                             onClick={handleSave}
+@@ -403,7 +403,7 @@
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                       d="M5 13l4 4L19 7"/>
+                                             </svg>
+-                                            {isSaving ? 'Saving...' : 'Save'}
++                                            {isSaving ? '保存中…' : '保存'}
+                                         </button>
+                                     </div>
+                                 )}
+--- a/src/web/components/DraftsList.tsx
++++ b/src/web/components/DraftsList.tsx
+@@ -46,7 +46,7 @@
+       setDrafts(sortedDrafts);
+       setError(null);
+     } catch (err) {
+-      setError(err instanceof Error ? err.message : 'Failed to load drafts');
++      setError(err instanceof Error ? err.message : '草稿加载失败');
+     } finally {
+       setLoading(false);
+     }
+@@ -65,7 +65,7 @@
+       // Reload drafts after successful promotion
+       await loadDrafts();
+     } catch (err) {
+-      setError(err instanceof Error ? err.message : 'Failed to promote draft');
++      setError(err instanceof Error ? err.message : '草稿转为任务失败');
+     }
+   };
+ 
+@@ -85,7 +85,7 @@
+   if (loading) {
+     return (
+       <div className="flex-1 flex items-center justify-center">
+-        <div className="text-gray-500 dark:text-gray-400">Loading drafts...</div>
++        <div className="text-gray-500 dark:text-gray-400">正在加载草稿…</div>
+       </div>
+     );
+   }
+@@ -98,7 +98,7 @@
+ 	          onClick={loadDrafts}
+ 	          className="ml-4 inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-colors"
+ 	        >
+-	          Retry
++	          重试
+ 	        </button>
+ 	      </div>
+     );
+@@ -107,7 +107,7 @@
+   return (
+     <div className="page-shell transition-colors duration-200">
+       <div className="flex items-center justify-between mb-6">
+-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Draft Tasks</h1>
++          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">任务草稿</h1>
+           <div className="flex items-center space-x-4">
+             <div className="text-sm text-gray-600 dark:text-gray-300">
+               {drafts.length} draft{drafts.length !== 1 ? 's' : ''}
+@@ -126,8 +126,8 @@
+             <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+             </svg>
+-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No drafts</h3>
+-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Draft tasks will appear here before they're promoted to the main backlog.</p>
++            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">暂无草稿</h3>
++            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">草稿转为正式任务前保存在这里。</p>
+           </div>
+         ) : (
+           <div className="space-y-4">
+@@ -148,14 +148,14 @@
+                     </div>
+                     <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-2">
+                       <span>{draft.id}</span>
+-                      <span>Created: <StoredDate value={draft.createdDate} dateFormat={dateFormat} /></span>
++                      <span>创建于： <StoredDate value={draft.createdDate} dateFormat={dateFormat} /></span>
+                       {draft.updatedDate && (
+-                        <span>Updated: <StoredDate value={draft.updatedDate} dateFormat={dateFormat} /></span>
++                        <span>更新于： <StoredDate value={draft.updatedDate} dateFormat={dateFormat} /></span>
+                       )}
+                     </div>
+                     {draft.assignee && draft.assignee.length > 0 && (
+                       <div className="flex items-center space-x-2 mb-2">
+-                        <span className="text-sm text-gray-500 dark:text-gray-400">Assigned to:</span>
++                        <span className="text-sm text-gray-500 dark:text-gray-400">负责人：</span>
+                         <div className="flex flex-wrap gap-1">
+                           {draft.assignee.map((person) => (
+                             <span key={person} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 rounded-circle">
+--- a/src/web/components/DuplicateIdRepairModal.tsx
++++ b/src/web/components/DuplicateIdRepairModal.tsx
+@@ -46,7 +46,7 @@
+ 		<Modal
+ 			isOpen={isOpen}
+ 			onClose={handleClose}
+-			title="Repair duplicate task IDs"
++			title="修复重复任务编号"
+ 			maxWidthClass="max-w-4xl"
+ 			disableEscapeClose={isRepairing}
+ 			initialFocusRef={cancelButtonRef}
+@@ -58,7 +58,7 @@
+ 				</p>
+ 
+ 				<div>
+-					<h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Files to rename</h3>
++					<h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">需要重命名的文件</h3>
+ 					<div className="max-h-64 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700">
+ 						<ul className="divide-y divide-gray-200 dark:divide-gray-700">
+ 							{plan.changes.map((change) => (
+@@ -81,7 +81,7 @@
+ 					<h3 className="text-sm font-semibold text-amber-950 dark:text-amber-100">
+ 						{plan.referenceScanComplete
+ 							? `References requiring review: ${plan.references.length}`
+-							: "Reference scan incomplete"}
++							: "引用扫描未完成"}
+ 					</h3>
+ 					<p className="mt-1 text-sm text-amber-900 dark:text-amber-200">
+ 						{plan.referenceScanComplete
+@@ -102,7 +102,7 @@
+ 
+ 				{plan.blockedReasons.length > 0 && (
+ 					<div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30">
+-						<h3 className="text-sm font-semibold text-red-900 dark:text-red-100">Automatic repair is blocked</h3>
++						<h3 className="text-sm font-semibold text-red-900 dark:text-red-100">自动修复已阻止</h3>
+ 						<ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-800 dark:text-red-200">
+ 							{plan.blockedReasons.map((reason) => (
+ 								<li key={reason}>{reason}</li>
+@@ -113,7 +113,7 @@
+ 
+ 				{showConfirmation && plan.repairable && (
+ 					<div className="rounded-md border border-amber-300 bg-amber-100 p-4 dark:border-amber-700 dark:bg-amber-900/30">
+-						<h3 className="text-sm font-semibold text-amber-950 dark:text-amber-100">Confirm repair</h3>
++						<h3 className="text-sm font-semibold text-amber-950 dark:text-amber-100">确认修复</h3>
+ 						<p className="mt-1 text-sm text-amber-900 dark:text-amber-200">
+ 							Rename {plan.changes.length} task {plan.changes.length === 1 ? "file" : "files"} now? Task content is
+ 							preserved; only each selected filename and frontmatter ID change.
+@@ -135,7 +135,7 @@
+ 						disabled={isRepairing}
+ 						className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+ 					>
+-						Cancel
++						取消
+ 					</button>
+ 					{plan.repairable && !showConfirmation && (
+ 						<button
+@@ -154,7 +154,7 @@
+ 							disabled={isRepairing}
+ 							className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:bg-red-500 dark:hover:bg-red-400"
+ 						>
+-							{isRepairing ? "Repairing…" : `Repair ${plan.changes.length} ${plan.changes.length === 1 ? "file" : "files"}`}
++							{isRepairing ? "正在修复…" : `Repair ${plan.changes.length} ${plan.changes.length === 1 ? "file" : "files"}`}
+ 						</button>
+ 					)}
+ 				</div>
+--- a/src/web/components/DuplicateIdWarning.tsx
++++ b/src/web/components/DuplicateIdWarning.tsx
+@@ -31,7 +31,7 @@
+ 							/>
+ 						</svg>
+ 						<p className="truncate text-sm">
+-							<span className="font-semibold">Duplicate task IDs:</span> {plan.groups.length} {plan.groups.length === 1 ? "group" : "groups"} across {duplicateTaskCount} files. Some tasks may be hidden.
++							<span className="font-semibold">重复任务编号：</span> {plan.groups.length} {plan.groups.length === 1 ? "group" : "groups"} across {duplicateTaskCount} files. Some tasks may be hidden.
+ 						</p>
+ 					</div>
+ 					<div className="ml-auto flex shrink-0 items-center gap-2">
+@@ -46,7 +46,7 @@
+ 							type="button"
+ 							onClick={() => setDismissed(true)}
+ 							className="inline-flex h-8 w-8 items-center justify-center rounded-md text-amber-800 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:text-amber-100 dark:hover:bg-amber-900"
+-							aria-label="Dismiss duplicate task ID warning"
++							aria-label="关闭重复编号警告"
+ 						>
+ 							<span aria-hidden="true" className="text-xl leading-none">×</span>
+ 						</button>
+--- a/src/web/components/ErrorBoundary.tsx
++++ b/src/web/components/ErrorBoundary.tsx
+@@ -18,13 +18,13 @@
+ 			<svg className="mx-auto h-12 w-12 text-red-500 dark:text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+ 			</svg>
+-			<h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Something went wrong</h3>
++			<h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">发生错误</h3>
+ 			<p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+ 				An unexpected error occurred. Please try refreshing the page.
+ 			</p>
+ 			{error && process.env.NODE_ENV === 'development' && (
+ 				<details className="mt-4 text-left">
+-					<summary className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">Technical Details</summary>
++					<summary className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">技术详情</summary>
+ 					<pre className="mt-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto transition-colors duration-200">
+ 						{error.message}
+ 					</pre>
+--- a/src/web/components/HealthIndicator.tsx
++++ b/src/web/components/HealthIndicator.tsx
+@@ -18,7 +18,7 @@
+ 						onClick={retry}
+ 						className="px-3 py-1.5 bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-800 rounded text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-400"
+ 					>
+-						Retry
++						重试
+ 					</button>
+ 			</div>
+ 		);
+@@ -31,7 +31,7 @@
+ export function HealthSuccessToast({ onDismiss }: { onDismiss: () => void }) {
+ 	return (
+ 		<SuccessToast 
+-			message="Connection restored!" 
++			message="连接已恢复" 
+ 			onDismiss={onDismiss}
+ 		/>
+ 	);
+--- a/src/web/components/InitializationScreen.tsx
++++ b/src/web/components/InitializationScreen.tsx
+@@ -96,7 +96,7 @@
+ 		switch (currentStep) {
+ 			case "projectName":
+ 				if (!projectName.trim()) {
+-					setError("Project name is required");
++					setError("请填写项目名称");
+ 					return;
+ 				}
+ 				setCurrentStep("integrationMode");
+@@ -201,7 +201,7 @@
+ 	};
+ 
+ 	const renderStepIndicator = () => {
+-		const steps = ["Project", "Integration", "Setup", "Config", "Initialize"];
++		const steps = ["项目", "Integration", "Setup", "Config", "Initialize"];
+ 		const stepMap: Record<WizardStep, number> = {
+ 			projectName: 0,
+ 			integrationMode: 1,
+@@ -242,7 +242,7 @@
+ 
+ 	const renderProjectNameStep = () => (
+ 		<div>
+-			<h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Project Name</h2>
++			<h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">项目名称</h2>
+ 			<p className="text-gray-600 dark:text-gray-400 mb-6">
+ 				Enter a name for your project. This will be displayed in the UI and used for identification.
+ 			</p>
+@@ -454,7 +454,7 @@
+ 
+ 	const renderAdvancedConfigStep = () => (
+ 		<div>
+-			<h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Advanced Settings</h2>
++			<h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">高级设置</h2>
+ 
+ 			<div className="mb-6">
+ 				<h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Backlog Folder</h3>
+@@ -702,7 +702,7 @@
+ 								className="mr-3"
+ 							/>
+ 							<div>
+-								<span className="text-gray-900 dark:text-gray-100">Zero-padded IDs</span>
++								<span className="text-gray-900 dark:text-gray-100">编号补零</span>
+ 								<p className="text-xs text-gray-500 dark:text-gray-400">
+ 									Example: task-001 instead of task-1
+ 								</p>
+@@ -828,7 +828,7 @@
+ 							? "MCP Connector"
+ 							: integrationMode === "cli"
+ 								? "CLI Commands"
+-								: "None"}
++								: "无"}
+ 					</span>
+ 				</div>
+ 				<div className="flex justify-between">
+--- a/src/web/components/LabelFilterDropdown.tsx
++++ b/src/web/components/LabelFilterDropdown.tsx
+@@ -18,10 +18,10 @@
+ 	onChange,
+ 	menuId,
+ 	className = "min-w-[200px]",
+-	label = "Labels",
+-	emptyLabel = "All",
+-	noOptionsLabel = "No labels",
+-	clearLabel = "Clear label filter",
++	label = "标签",
++	emptyLabel = "全部",
++	noOptionsLabel = "暂无标签",
++	clearLabel = "清除标签筛选",
+ }: LabelFilterDropdownProps) {
+ 	const [isOpen, setIsOpen] = useState(false);
+ 	const buttonRef = useRef<HTMLButtonElement | null>(null);
+@@ -68,7 +68,7 @@
+ 							? emptyLabel
+ 							: selectedLabels.length === 1
+ 								? selectedLabels[0]
+-								: `${selectedLabels.length} selected`}
++								: `已选 ${selectedLabels.length} 项`}
+ 					</span>
+ 				</div>
+ 			</button>
+--- a/src/web/components/LoadingSpinner.tsx
++++ b/src/web/components/LoadingSpinner.tsx
+@@ -7,7 +7,7 @@
+ }
+ const LoadingSpinner = memo(function LoadingSpinner({
+ 								 size = 'md',
+-								 text = 'Loading...',
++								 text = '加载中…',
+ 								 className = ''
+ 							 }: LoadingSpinnerProps) {
+ 	const sizeClasses = {
+--- a/src/web/components/MilestoneTaskRow.tsx
++++ b/src/web/components/MilestoneTaskRow.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import React from "react";
+ import type { Task } from "../../types";
+ 
+@@ -57,7 +58,7 @@
+ 		</div>
+ 
+ 		<div className="w-24 flex justify-center">
+-			<span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusBadgeClass}`}>{task.status}</span>
++			<span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusBadgeClass}`}>{uiLabel(task.status)}</span>
+ 		</div>
+ 
+ 		<div className="w-20 flex justify-center">
+--- a/src/web/components/MilestonesPage.tsx
++++ b/src/web/components/MilestonesPage.tsx
+@@ -225,7 +225,7 @@
+ 		event?.preventDefault();
+ 		const value = newMilestone.trim();
+ 		if (!value) {
+-			setError("Milestone name cannot be empty.");
++			setError("里程碑名称不能为空。");
+ 			setSuccess(null);
+ 			return;
+ 		}
+@@ -324,7 +324,7 @@
+ 
+ 		const value = editMilestoneName.trim();
+ 		if (!value) {
+-			setModalError("Milestone name cannot be empty.");
++			setModalError("里程碑名称不能为空。");
+ 			return;
+ 		}
+ 
+@@ -381,7 +381,7 @@
+ 		const selectedTaskHandling = removeTaskHandling;
+ 		const selectedReassignTo = removeReassignTo.trim();
+ 		if (selectedTaskHandling === "reassign" && !selectedReassignTo) {
+-			setModalError("Choose a milestone to reassign tasks to.");
++			setModalError("请选择新的里程碑。");
+ 			return;
+ 		}
+ 
+@@ -503,13 +503,13 @@
+ 							<h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{bucket.label}</h3>
+ 							{milestoneEntity?.dueDate && (
+ 								<p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+-									Due: <StoredDate value={milestoneEntity.dueDate} dateFormat={dateFormat} />
++									截止： <StoredDate value={milestoneEntity.dueDate} dateFormat={dateFormat} />
+ 								</p>
+ 							)}
+ 						</div>
+ 						{isEmpty ? (
+ 							<span className="text-sm text-gray-400 dark:text-gray-500">
+-								{isDragging ? "Drop here" : "No tasks"}
++								{isDragging ? "拖放到此处" : "暂无任务"}
+ 							</span>
+ 						) : (
+ 							<div className="flex items-center gap-3">
+@@ -576,7 +576,7 @@
+ 								<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+ 								</svg>
+-								{isSavingMilestone ? "Saving..." : "Edit"}
++								{isSavingMilestone ? "保存中…" : "编辑"}
+ 							</button>
+ 							<button
+ 								type="button"
+@@ -587,7 +587,7 @@
+ 								<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0H7m3 0V5a2 2 0 012-2h0a2 2 0 012 2v2" />
+ 								</svg>
+-								{isRemoving ? "Removing..." : "Remove"}
++								{isRemoving ? "移除中…" : "移除"}
+ 							</button>
+ 							<button
+ 								type="button"
+@@ -598,7 +598,7 @@
+ 								<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+ 								</svg>
+-								{isArchiving ? "Archiving..." : "Archive"}
++								{isArchiving ? "归档中…" : "归档"}
+ 							</button>
+ 						</div>
+ 						<button
+@@ -608,7 +608,7 @@
+ 							onClick={() => setExpandedBuckets((c) => ({ ...c, [bucket.key]: !isExpanded }))}
+ 							className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+ 						>
+-							{isExpanded ? "Hide" : "Show"} tasks
++							{isExpanded ? "隐藏" : "显示"} tasks
+ 							<svg className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+ 							</svg>
+@@ -679,7 +679,7 @@
+ 							onClick={() => setExpandedBuckets((c) => ({ ...c, "__unassigned": !isExpanded }))}
+ 							className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+ 						>
+-							{isExpanded ? "Collapse" : "Expand"}
++							{isExpanded ? "收起" : "展开"}
+ 							<svg className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+ 							</svg>
+@@ -696,9 +696,9 @@
+ 										<div className="grid grid-cols-[auto_auto_1fr_auto_auto] gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+ 											<div className="w-6" /> {/* Drag handle column */}
+ 											<div className="w-24">ID</div>
+-											<div>Title</div>
+-											<div className="text-center w-24">Status</div>
+-											<div className="text-center w-20">Priority</div>
++											<div>标题</div>
++											<div className="text-center w-24">状态</div>
++											<div className="text-center w-20">优先级</div>
+ 										</div>
+ 
+ 										{/* Table rows */}
+@@ -726,7 +726,7 @@
+ 													className="text-blue-600 dark:text-blue-400 hover:underline"
+ 												>
+ 													{showAllUnassigned
+-														? "Show less ↑"
++														? "收起 ↑"
+ 														: `Show all ${sortedActiveTasks.length} tasks ↓`}
+ 												</button>
+ 											</div>
+@@ -741,8 +741,8 @@
+ 							) : (
+ 								<p className="rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-800/50 px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+ 									{isSearchActive
+-										? "No matching unassigned tasks."
+-										: "No active unassigned tasks. Completed tasks are hidden."}
++										? "没有匹配的未分配任务。"
++										: "暂无未分配的活动任务，已完成任务已隐藏。"}
+ 								</p>
+ 							)}
+ 						</div>
+@@ -762,7 +762,7 @@
+ 			{/* Header */}
+ 			<div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+ 				<div className="flex flex-wrap items-center gap-4">
+-					<h1 className="text-2xl font-bold text-gray-900 dark:text-white">Milestones</h1>
++					<h1 className="text-2xl font-bold text-gray-900 dark:text-white">里程碑</h1>
+ 					<div className="relative w-full min-w-[240px] max-w-[420px]">
+ 						<span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-gray-500">
+ 							<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+@@ -770,22 +770,22 @@
+ 							</svg>
+ 						</span>
+ 						<label htmlFor="milestones-search" className="sr-only">
+-							Search milestones
++							搜索里程碑
+ 						</label>
+ 						<input
+ 							id="milestones-search"
+ 							type="text"
+ 							value={searchQuery}
+ 							onInput={(event) => setSearchQuery((event.target as HTMLInputElement).value)}
+-							placeholder="Search tasks"
+-							aria-label="Search milestones"
++							placeholder="搜索任务"
++							aria-label="搜索里程碑"
+ 							className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200"
+ 						/>
+ 						{isSearchActive && (
+ 							<button
+ 								type="button"
+ 								onClick={() => setSearchQuery("")}
+-								aria-label="Clear milestone search"
++								aria-label="清除里程碑搜索"
+ 								className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+ 							>
+ 								<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+@@ -853,7 +853,7 @@
+ 				<div className="mt-8">
+ 					{isSearchActive ? (
+ 						<div className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+-							<span>Completed milestones</span>
++							<span>已完成里程碑</span>
+ 							<span className="text-xs text-gray-400 dark:text-gray-500">({completedMilestones.length})</span>
+ 						</div>
+ 					) : (
+@@ -862,7 +862,7 @@
+ 							onClick={() => setShowCompleted((value) => !value)}
+ 							className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+ 						>
+-							<span>Completed milestones</span>
++							<span>已完成里程碑</span>
+ 							<span className="text-xs text-gray-400 dark:text-gray-500">({completedMilestones.length})</span>
+ 							<svg
+ 								className={`w-4 h-4 transition-transform ${showCompleted ? "rotate-180" : ""}`}
+@@ -888,15 +888,15 @@
+ 					<svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+ 					</svg>
+-					<p className="text-gray-500 dark:text-gray-400">No milestones yet. Create one to start organizing your tasks.</p>
++					<p className="text-gray-500 dark:text-gray-400">暂无里程碑。</p>
+ 				</div>
+ 			)}
+ 
+ 			{/* Add modal */}
+-			<Modal isOpen={showAddModal} onClose={closeAddModal} title="Add milestone" maxWidthClass="max-w-md">
++			<Modal isOpen={showAddModal} onClose={closeAddModal} title="添加里程碑" maxWidthClass="max-w-md">
+ 				<form onSubmit={handleAddMilestone} className="space-y-4">
+ 					<div className="space-y-2">
+-						<label className="text-sm font-medium text-gray-900 dark:text-gray-100">Milestone name</label>
++						<label className="text-sm font-medium text-gray-900 dark:text-gray-100">里程碑名称</label>
+ 						<input
+ 							type="text"
+ 							value={newMilestone}
+@@ -909,7 +909,7 @@
+ 					</div>
+ 					<div className="space-y-2">
+ 						<label htmlFor="new-milestone-due-date" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+-							Due
++							截止日期
+ 						</label>
+ 						<input
+ 							id="new-milestone-due-date"
+@@ -925,25 +925,25 @@
+ 							onClick={closeAddModal}
+ 							className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+ 						>
+-							Cancel
++							取消
+ 						</button>
+ 						<button
+ 							type="submit"
+ 							disabled={isSaving || !newMilestone.trim()}
+ 							className="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 transition-colors"
+ 						>
+-							{isSaving ? "Saving..." : "Create"}
++							{isSaving ? "保存中…" : "创建"}
+ 						</button>
+ 					</div>
+ 				</form>
+ 			</Modal>
+ 
+ 			{/* Edit modal */}
+-			<Modal isOpen={editingBucket !== null} onClose={closeEditModal} title="Edit milestone" maxWidthClass="max-w-md">
++			<Modal isOpen={editingBucket !== null} onClose={closeEditModal} title="编辑里程碑" maxWidthClass="max-w-md">
+ 				<form onSubmit={handleUpdateMilestone} className="space-y-4">
+ 					<div className="space-y-2">
+ 						<label htmlFor="edit-milestone-name" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+-							Milestone name
++							里程碑名称
+ 						</label>
+ 						<input
+ 							id="edit-milestone-name"
+@@ -960,7 +960,7 @@
+ 					</div>
+ 					<div className="space-y-2">
+ 						<label htmlFor="edit-milestone-due-date" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+-							Due
++							截止日期
+ 						</label>
+ 						<input
+ 							id="edit-milestone-due-date"
+@@ -976,21 +976,21 @@
+ 							onClick={closeEditModal}
+ 							className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+ 						>
+-							Cancel
++							取消
+ 						</button>
+ 						<button
+ 							type="submit"
+ 							disabled={savingMilestoneKey !== null || !editMilestoneName.trim()}
+ 							className="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 transition-colors"
+ 						>
+-							{savingMilestoneKey ? "Saving..." : "Save"}
++							{savingMilestoneKey ? "保存中…" : "保存"}
+ 						</button>
+ 					</div>
+ 				</form>
+ 			</Modal>
+ 
+ 			{/* Remove modal */}
+-			<Modal isOpen={removingBucket !== null} onClose={closeRemoveModal} title="Remove milestone" maxWidthClass="max-w-md">
++			<Modal isOpen={removingBucket !== null} onClose={closeRemoveModal} title="移除里程碑" maxWidthClass="max-w-md">
+ 				<div className="space-y-4">
+ 					<p className="text-sm text-gray-600 dark:text-gray-300">
+ 						Remove milestone &quot;{removingBucket?.label ?? ""}&quot; and choose what happens to its tasks.
+@@ -1009,7 +1009,7 @@
+ 								className="mt-0.5"
+ 							/>
+ 							<span>
+-								<span className="block font-medium text-gray-900 dark:text-gray-100">Leave tasks unassigned</span>
++								<span className="block font-medium text-gray-900 dark:text-gray-100">保留任务但解除里程碑</span>
+ 								<span className="block text-xs text-gray-500 dark:text-gray-400">
+ 									Clear this milestone from matching local tasks.
+ 								</span>
+@@ -1029,7 +1029,7 @@
+ 								className="mt-0.5"
+ 							/>
+ 							<span className="flex-1">
+-								<span className="block font-medium text-gray-900 dark:text-gray-100">Reassign tasks</span>
++								<span className="block font-medium text-gray-900 dark:text-gray-100">重新分配任务</span>
+ 								<span className="block text-xs text-gray-500 dark:text-gray-400">
+ 									Move matching local tasks to another milestone.
+ 								</span>
+@@ -1058,7 +1058,7 @@
+ 							onClick={closeRemoveModal}
+ 							className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+ 						>
+-							Cancel
++							取消
+ 						</button>
+ 						<button
+ 							type="button"
+@@ -1066,7 +1066,7 @@
+ 							disabled={removingMilestoneKey !== null || (removeTaskHandling === "reassign" && !removeReassignTo)}
+ 							className="px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-60 transition-colors"
+ 						>
+-							{removingMilestoneKey ? "Removing..." : "Remove milestone"}
++							{removingMilestoneKey ? "移除中…" : "移除里程碑"}
+ 						</button>
+ 					</div>
+ 				</div>
+--- a/src/web/components/Modal.tsx
++++ b/src/web/components/Modal.tsx
+@@ -132,7 +132,7 @@
+ 							onClick={onClose}
+ 							disabled={disableEscapeClose}
+ 							className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1 transition-colors duration-200 text-2xl leading-none w-8 h-8 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+-							aria-label="Close modal"
++							aria-label="关闭窗口"
+ 						>
+ 							×
+ 						</button>
+--- a/src/web/components/Navigation.tsx
++++ b/src/web/components/Navigation.tsx
+@@ -12,8 +12,8 @@
+         <nav className="relative px-8 h-18 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-colors duration-200">
+             <div className="h-full flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+-                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{projectName || 'Loading...'}</h1>
+-                    <span className="text-sm text-gray-500 dark:text-gray-400">powered by</span>
++                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{projectName || '加载中…'}</h1>
++                    <span className="text-sm text-gray-500 dark:text-gray-400">基于</span>
+                     <a
+                         href="https://backlog.md"
+                         target="_blank"
+--- a/src/web/components/Settings.tsx
++++ b/src/web/components/Settings.tsx
+@@ -26,7 +26,7 @@
+ 			setOriginalConfig(data);
+ 			setError(null);
+ 		} catch (err) {
+-			setError(err instanceof Error ? err.message : 'Failed to load configuration');
++			setError(err instanceof Error ? err.message : '配置加载失败');
+ 		} finally {
+ 			setLoading(false);
+ 		}
+@@ -70,12 +70,12 @@
+ 
+ 		// Validate project name
+ 		if (!config.projectName.trim()) {
+-			errors.projectName = 'Project name is required';
++			errors.projectName = '请填写项目名称';
+ 		}
+ 
+ 		// Validate port number
+ 		if (config.defaultPort && (config.defaultPort < 1 || config.defaultPort > 65535)) {
+-			errors.defaultPort = 'Port must be between 1 and 65535';
++			errors.defaultPort = '端口必须在 1 到 65535 之间';
+ 		}
+ 
+ 
+@@ -99,7 +99,7 @@
+ 			setTimeout(() => setShowSuccess(false), 3000);
+ 			setError(null);
+ 		} catch (err) {
+-			setError(err instanceof Error ? err.message : 'Failed to save configuration');
++			setError(err instanceof Error ? err.message : '配置保存失败');
+ 		} finally {
+ 			setSaving(false);
+ 		}
+@@ -116,7 +116,7 @@
+ 		return (
+ 			<div className="page-shell">
+ 				<div className="flex items-center justify-center py-12">
+-					<div className="text-lg text-gray-600 dark:text-gray-300">Loading settings...</div>
++					<div className="text-lg text-gray-600 dark:text-gray-300">正在加载设置…</div>
+ 				</div>
+ 			</div>
+ 		);
+@@ -126,7 +126,7 @@
+ 		return (
+ 			<div className="page-shell">
+ 				<div className="flex items-center justify-center py-12">
+-					<div className="text-red-600 dark:text-red-400">Failed to load configuration</div>
++					<div className="text-red-600 dark:text-red-400">配置加载失败</div>
+ 				</div>
+ 			</div>
+ 		);
+@@ -135,7 +135,7 @@
+ 	return (
+ 		<div className="page-shell transition-colors duration-200">
+ 			<div className="max-w-4xl mx-auto">
+-				<h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Settings</h1>
++				<h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">设置</h1>
+ 
+ 				{error && (
+ 					<div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+@@ -146,11 +146,11 @@
+ 				<div className="space-y-8">
+ 					{/* Project Settings */}
+ 					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+-						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Project Settings</h2>
++						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">项目设置</h2>
+ 						<div className="space-y-4">
+ 							<div>
+ 								<label htmlFor="projectName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+-									Project Name
++									项目名称
+ 								</label>
+ 								<input
+ 									id="projectName"
+@@ -191,12 +191,12 @@
+ 
+ 					{/* Workflow Settings */}
+ 					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+-						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Workflow Settings</h2>
++						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">工作流设置</h2>
+ 						<div className="space-y-4">
+ 							<div>
+ 								<label className="flex items-center justify-between">
+ 									<div>
+-										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto Commit</span>
++										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">自动提交</span>
+ 										<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+ 											Automatically commit changes to Git after task operations
+ 										</p>
+@@ -216,7 +216,7 @@
+ 							<div>
+ 								<label className="flex items-center justify-between">
+ 									<div>
+-										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">Remote Operations</span>
++										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">远程操作</span>
+ 										<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+ 											Fetch tasks information from remote branches
+ 										</p>
+@@ -235,7 +235,7 @@
+ 
+ 							<div>
+ 								<label htmlFor="defaultStatus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+-									Default Status
++									默认状态
+ 								</label>
+ 								<select
+ 									id="defaultStatus"
+@@ -254,7 +254,7 @@
+ 
+ 							<div>
+ 								<label htmlFor="defaultEditor" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+-									Default Editor
++									默认编辑器
+ 								</label>
+ 								<input
+ 									id="defaultEditor"
+@@ -273,7 +273,7 @@
+ 
+ 					{/* Definition of Done Defaults */}
+ 					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+-						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Definition of Done Defaults</h2>
++						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">默认完成标准</h2>
+ 						<p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+ 							These checklist items are added to new tasks by default.
+ 						</p>
+@@ -289,7 +289,7 @@
+ 											handleInputChange('definitionOfDone', next);
+ 										}}
+ 										className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200"
+-										placeholder="Checklist item"
++										placeholder="检查项"
+ 									/>
+ 									<button
+ 										type="button"
+@@ -299,7 +299,7 @@
+ 										}}
+ 										className="px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:underline"
+ 									>
+-										Remove
++										移除
+ 									</button>
+ 								</div>
+ 							))}
+@@ -315,11 +315,11 @@
+ 
+ 					{/* Web UI Settings */}
+ 					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+-						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Web UI Settings</h2>
++						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">看板设置</h2>
+ 						<div className="space-y-4">
+ 							<div>
+ 								<label htmlFor="defaultPort" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+-									Default Port
++									默认端口
+ 								</label>
+ 								<input
+ 									id="defaultPort"
+@@ -342,7 +342,7 @@
+ 							<div>
+ 								<label className="flex items-center justify-between">
+ 									<div>
+-										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto Open Browser</span>
++										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">自动打开浏览器</span>
+ 										<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+ 											Automatically open browser when starting web UI
+ 										</p>
+@@ -362,7 +362,7 @@
+ 							<div>
+ 								<label className="flex items-center justify-between">
+ 									<div>
+-										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">Hide Empty Columns</span>
++										<span className="text-sm font-medium text-gray-700 dark:text-gray-300">隐藏空列</span>
+ 										<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+ 											Hide board columns whose status has no tasks. Columns reappear while dragging a task so they remain valid drop targets.
+ 										</p>
+@@ -383,11 +383,11 @@
+ 
+ 					{/* Advanced Settings */}
+ 					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+-						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Advanced Settings</h2>
++						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">高级设置</h2>
+ 						<div className="space-y-4">
+ 							<div>
+ 								<label htmlFor="maxColumnWidth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+-									Max Column Width
++									最大列宽
+ 								</label>
+ 								<input
+ 									id="maxColumnWidth"
+@@ -405,7 +405,7 @@
+ 
+ 							<div>
+ 								<label htmlFor="taskResolutionStrategy" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+-									Task Resolution Strategy
++									任务版本选择策略
+ 								</label>
+ 								<select
+ 									id="taskResolutionStrategy"
+@@ -413,8 +413,8 @@
+ 									onChange={(e) => handleInputChange('taskResolutionStrategy', e.target.value as 'most_recent' | 'most_progressed')}
+ 									className="w-full h-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200"
+ 								>
+-									<option value="most_recent">Most Recent</option>
+-									<option value="most_progressed">Most Progressed</option>
++									<option value="most_recent">最近更新</option>
++									<option value="most_progressed">进度最高</option>
+ 								</select>
+ 								<p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+ 									Strategy for resolving conflicts when tasks exist in multiple branches
+@@ -463,14 +463,14 @@
+ 								disabled={!hasUnsavedChanges || saving}
+ 								className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 disabled:opacity-50 transition-colors duration-200"
+ 							>
+-								Cancel
++								取消
+ 							</button>
+ 							<button
+ 								onClick={handleSave}
+ 								disabled={!hasUnsavedChanges || saving}
+ 								className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
+ 							>
+-								{saving ? 'Saving...' : 'Save Changes'}
++								{saving ? '保存中…' : '保存修改'}
+ 							</button>
+ 						</div>
+ 				</div>
+@@ -479,7 +479,7 @@
+ 			{/* Success Toast */}
+ 			{showSuccess && (
+ 				<SuccessToast
+-					message="Settings saved successfully!"
++					message="设置已保存"
+ 					onDismiss={() => setShowSuccess(false)}
+ 				/>
+ 			)}
+--- a/src/web/components/SideNavigation.tsx
++++ b/src/web/components/SideNavigation.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
+ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+ import { Tooltip } from 'react-tooltip';
+@@ -411,7 +412,7 @@
+ 				console.error('Sidebar search failed:', err);
+ 				if (!cancelled) {
+ 					setSearchResults([]);
+-					setSearchError('Search failed');
++					setSearchError('搜索失败');
+ 				}
+ 			} finally {
+ 				if (!cancelled) {
+@@ -473,8 +474,8 @@
+ 				<button
+ 					onClick={toggleCollapse}
+ 					className="absolute -right-3 top-1/2 transform -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-circle shadow-sm hover:shadow-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200"
+-					aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+-					title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
++					aria-label={isCollapsed ? '展开侧栏' : '收起侧栏'}
++					title={isCollapsed ? '展开侧栏' : '收起侧栏'}
+ 				>
+ 					{isCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
+ 				</button>
+@@ -488,7 +489,7 @@
+ 							<input
+ 								ref={setSearchInputRef}
+ 								type="text"
+-								placeholder="Search (⌘K)..."
++								placeholder="搜索（⌘K）…"
+ 								value={searchQuery}
+ 								onChange={(e) => setSearchQuery(e.target.value)}
+ 								className="w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200"
+@@ -510,7 +511,7 @@
+ 							<button
+ 								onClick={expandAndFocusSearch}
+ 								className="flex items-center justify-center p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
+-								title="Search (⌘K)"
++								title="搜索（⌘K）"
+ 							>
+ 								<Icons.Search />
+ 						</button>
+@@ -522,9 +523,9 @@
+ 			{!isCollapsed && searchQuery.trim() && unifiedSearchResults.length > 0 && (
+ 				<div className="p-4 border-b border-gray-200 dark:border-gray-700">
+ 					<div className="flex items-center justify-between mb-3">
+-						<h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Search Results</h3>
++						<h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">搜索结果</h3>
+ 						{isSearching && (
+-							<span className="text-xs text-gray-500 dark:text-gray-400">Searching…</span>
++							<span className="text-xs text-gray-500 dark:text-gray-400">搜索中…</span>
+ 						)}
+ 					</div>
+ 					<div className="space-y-1">
+@@ -569,7 +570,7 @@
+ 											{item.title}
+ 										</div>
+ 										<div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+-											{result.type.charAt(0).toUpperCase() + result.type.slice(1)} • {item.id}
++											{uiLabel(result.type.charAt(0).toUpperCase() + result.type.slice(1))} • {item.id}
+ 										</div>
+ 									</div>
+ 									{result.score !== null && (
+@@ -586,7 +587,7 @@
+ 
+ 			{!isCollapsed && searchQuery.trim() && unifiedSearchResults.length === 0 && !isSearching && !searchError && (
+ 				<div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+-					No matching results
++					没有匹配结果
+ 				</div>
+ 			)}
+ 
+@@ -605,24 +606,24 @@
+ 							type="button"
+ 							onClick={onRetry}
+ 							className="flex w-full items-center justify-center rounded-md bg-red-50 p-3 font-bold text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+-							aria-label="Failed to load navigation. Retry"
+-							title="Failed to load navigation. Retry"
++							aria-label="导航加载失败，点击重试"
++							title="导航加载失败，点击重试"
+ 						>
+ 							<span aria-hidden="true">!</span>
+-							<span className="sr-only">Retry</span>
++							<span className="sr-only">重试</span>
+ 						</button>
+ 					</div>
+ 				)}
+ 				{error && !isCollapsed && (
+ 					<div className="px-4 py-4">
+ 						<div className="text-center p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+-							<p className="text-sm text-red-700 dark:text-red-400 mb-2">Failed to load navigation</p>
++							<p className="text-sm text-red-700 dark:text-red-400 mb-2">导航加载失败</p>
+ 								{onRetry && (
+ 									<button
+ 										onClick={onRetry}
+ 										className="text-xs px-3 py-1 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors duration-200"
+ 									>
+-										Retry
++										重试
+ 									</button>
+ 							)}
+ 						</div>
+@@ -635,7 +636,7 @@
+ 						<div className="flex items-center space-x-3 text-gray-700 dark:text-gray-300">
+ 							<span className="text-gray-500 dark:text-gray-400"><Icons.Tasks /></span>
+ 							<span className="text-sm font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 whitespace-nowrap">
+-								Tasks (<NavigationCount count={taskCount} isLoading={isLoading} error={error} label="task" />)
++								任务 (<NavigationCount count={taskCount} isLoading={isLoading} error={error} label="task" />)
+ 							</span>
+ 						</div>
+ 						{isLoading && (
+@@ -658,7 +659,7 @@
+ 							}
+ 						>
+ 							<Icons.Board />
+-							<span className="ml-3 text-sm font-medium">Kanban Board</span>
++							<span className="ml-3 text-sm font-medium">任务看板</span>
+ 						</NavLink>
+ 
+ 						{/* Tasks Navigation */}
+@@ -673,7 +674,7 @@
+ 							}
+ 						>
+ 							<Icons.List />
+-							<span className="ml-3 text-sm font-medium">All Tasks</span>
++							<span className="ml-3 text-sm font-medium">全部任务</span>
+ 						</NavLink>
+ 
+ 						{/* Milestones Navigation */}
+@@ -688,7 +689,7 @@
+ 							}
+ 						>
+ 							<Icons.Milestone />
+-							<span className="ml-3 text-sm font-medium">Milestones</span>
++							<span className="ml-3 text-sm font-medium">里程碑</span>
+ 						</NavLink>
+ 
+ 						{/* Drafts Navigation */}
+@@ -703,7 +704,7 @@
+ 							}
+ 						>
+ 							<Icons.Draft />
+-							<span className="ml-3 text-sm font-medium">Drafts</span>
++							<span className="ml-3 text-sm font-medium">草稿</span>
+ 						</NavLink>
+ 
+ 						{/* Statistics Navigation */}
+@@ -718,7 +719,7 @@
+ 							}
+ 						>
+ 							<Icons.Statistics />
+-							<span className="ml-3 text-sm font-medium">Statistics</span>
++							<span className="ml-3 text-sm font-medium">统计</span>
+ 						</NavLink>
+ 					</div>
+ 				)}
+@@ -735,19 +736,19 @@
+ 										<button
+ 											onClick={() => setIsDocsCollapsed(!isDocsCollapsed)}
+ 											className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors duration-200"
+-											title={isDocsCollapsed ? "Expand documents" : "Collapse documents"}
++											title={isDocsCollapsed ? "展开文档" : "收起文档"}
+ 										>
+ 											{isDocsCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronDown />}
+ 									</button>
+ 									<span className="text-gray-500 dark:text-gray-400"><Icons.Document /></span>
+ 									<span className="text-sm font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 whitespace-nowrap">
+-										Documents (<NavigationCount count={docs.length} isLoading={isLoading} error={error} label="document" />)
++										文档 (<NavigationCount count={docs.length} isLoading={isLoading} error={error} label="document" />)
+ 									</span>
+ 								</div>
+ 									<button
+ 										onClick={handleCreateDocument}
+ 										className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors duration-200"
+-										title="Create new document"
++										title="新建文档"
+ 									>
+ 										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+@@ -762,9 +763,9 @@
+ 									{isLoading ? (
+ 										<LoadingPhase className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400" />
+ 									) : error ? (
+-										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">Documents unavailable</p>
++										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">文档不可用</p>
+ 									) : filteredDocs.length === 0 ? (
+-										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No documents</p>
++										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">暂无文档</p>
+ 									) : searchQuery.trim() ? (
+ 										// Search results stay flat, bypassing folder grouping
+ 										filteredDocs.map(doc => (
+@@ -800,13 +801,13 @@
+ 										<button
+ 											onClick={() => setIsDecisionsCollapsed(!isDecisionsCollapsed)}
+ 											className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors duration-200"
+-											title={isDecisionsCollapsed ? "Expand decisions" : "Collapse decisions"}
++											title={isDecisionsCollapsed ? "展开决策" : "收起决策"}
+ 										>
+ 											{isDecisionsCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronDown />}
+ 									</button>
+ 									<span className="text-gray-500 dark:text-gray-400"><Icons.Decision /></span>
+ 									<span className="text-sm font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 whitespace-nowrap">
+-										Decisions (<NavigationCount count={decisions.length} isLoading={isLoading} error={error} label="decision" />)
++										决策 (<NavigationCount count={decisions.length} isLoading={isLoading} error={error} label="decision" />)
+ 									</span>
+ 								</div>
+ 								{/* Temporarily hidden - decisions editing not ready */}
+@@ -814,7 +815,7 @@
+ 								{/*	<button*/}
+ 								{/*		onClick={handleCreateDecision}*/}
+ 								{/*		className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"*/}
+-								{/*		title="Create new decision"*/}
++								{/*		title="新建决策"*/}
+ 								{/*	>*/}
+ 								{/*		<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">*/}
+ 								{/*			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />*/}
+@@ -830,9 +831,9 @@
+ 									{isLoading ? (
+ 										<LoadingPhase className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400" />
+ 									) : error ? (
+-										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">Decisions unavailable</p>
++										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">决策不可用</p>
+ 									) : filteredDecisions.length === 0 ? (
+-										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No decisions</p>
++										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">暂无决策</p>
+ 									) : (
+ 										filteredDecisions.map((decision) => (
+ 											<NavLink
+@@ -862,7 +863,7 @@
+ 						<NavLink
+ 							to="/board"
+ 							data-tooltip-id="sidebar-tooltip"
+-							data-tooltip-content="Kanban Board"
++							data-tooltip-content="任务看板"
+ 							className={({ isActive }) =>
+ 								`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+ 									isActive
+@@ -878,7 +879,7 @@
+ 						<NavLink
+ 							to="/tasks"
+ 							data-tooltip-id="sidebar-tooltip"
+-							data-tooltip-content="All Tasks"
++							data-tooltip-content="全部任务"
+ 							className={({ isActive }) =>
+ 								`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+ 									isActive
+@@ -895,7 +896,7 @@
+ 						<NavLink
+ 							to="/drafts"
+ 							data-tooltip-id="sidebar-tooltip"
+-							data-tooltip-content="Drafts"
++							data-tooltip-content="草稿"
+ 							className={({ isActive }) =>
+ 								`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+ 									isActive
+@@ -912,7 +913,7 @@
+ 						<NavLink
+ 							to="/milestones"
+ 							data-tooltip-id="sidebar-tooltip"
+-							data-tooltip-content="Milestones"
++							data-tooltip-content="里程碑"
+ 							className={({ isActive }) =>
+ 								`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+ 									isActive
+@@ -929,7 +930,7 @@
+ 						<NavLink
+ 							to="/statistics"
+ 							data-tooltip-id="sidebar-tooltip"
+-							data-tooltip-content="Statistics"
++							data-tooltip-content="统计"
+ 							className={({ isActive }) =>
+ 								`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+ 									isActive
+@@ -948,7 +949,7 @@
+ 								setIsDocsCollapsed(false);
+ 							}}
+ 								data-tooltip-id="sidebar-tooltip"
+-								data-tooltip-content="Documentation"
++								data-tooltip-content="文档"
+ 								className={`flex items-center justify-center p-3 rounded-md transition-colors duration-200 w-full ${
+ 									location.pathname.startsWith('/documentation')
+ 										? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400'
+@@ -965,7 +966,7 @@
+ 								setIsDecisionsCollapsed(false);
+ 							}}
+ 								data-tooltip-id="sidebar-tooltip"
+-								data-tooltip-content="Decisions"
++								data-tooltip-content="决策"
+ 								className={`flex items-center justify-center p-3 rounded-md transition-colors duration-200 w-full ${
+ 									location.pathname.startsWith('/decisions')
+ 										? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400'
+@@ -994,7 +995,7 @@
+ 						}
+ 					>
+ 						<Icons.DocumentSettings />
+-						<span className="ml-3 text-sm font-medium">Settings</span>
++						<span className="ml-3 text-sm font-medium">设置</span>
+ 						{version && (
+ 							<span className="ml-auto text-xs text-gray-500 dark:text-gray-400">Backlog.md - v{version}</span>
+ 						)}
+@@ -1003,7 +1004,7 @@
+ 					<NavLink
+ 						to="/settings"
+ 						data-tooltip-id="sidebar-tooltip"
+-						data-tooltip-content="Settings"
++						data-tooltip-content="设置"
+ 						className={({ isActive }) =>
+ 							`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+ 								isActive
+--- a/src/web/components/Statistics.tsx
++++ b/src/web/components/Statistics.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import React, { useState, useEffect } from 'react';
+ import { apiClient } from '../lib/api';
+ import type { TaskStatistics } from '../../core/statistics';
+@@ -29,7 +30,7 @@
+ 	const [statistics, setStatistics] = useState<StatisticsData | null>(null);
+ 	const [loading, setLoading] = useState(true);
+ 	const [error, setError] = useState<string | null>(null);
+-	const [loadingMessage, setLoadingMessage] = useState('Building statistics...');
++	const [loadingMessage, setLoadingMessage] = useState('正在整理统计…');
+ 
+ 	useEffect(() => {
+ 		let isMounted = true;
+@@ -44,13 +45,13 @@
+ 				
+ 				// Loading messages that reflect actual backend operations
+ 				const loadingMessages = [
+-					'Building statistics...',
+-					'Loading local tasks...',
+-					'Loading completed tasks...',
+-					'Merging tasks...',
+-					'Checking task states across branches...',
+-					'Loading drafts...',
+-					'Calculating statistics...'
++					'正在整理统计…',
++					'正在加载本地任务…',
++					'正在加载已完成任务…',
++					'正在合并任务…',
++					'正在检查分支任务状态…',
++					'正在加载草稿…',
++					'正在计算统计…'
+ 				];
+ 
+ 				// Start with first message
+@@ -81,7 +82,7 @@
+ 			} catch (err) {
+ 				if (isMounted) {
+ 					console.error('Failed to fetch statistics:', err);
+-					setError('Failed to load statistics');
++					setError('统计加载失败');
+ 				}
+ 			} finally {
+ 				if (isMounted) {
+@@ -106,7 +107,7 @@
+ 				<LoadingSpinner size="lg" text="" />
+ 				<div className="text-center">
+ 					<p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+-						{loading ? loadingMessage : 'Loading statistics...'}
++						{loading ? loadingMessage : '正在加载统计…'}
+ 					</p>
+ 					<p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+ 						This might take a while...
+@@ -120,7 +121,7 @@
+ 		return (
+ 			<div className="p-8 text-center">
+ 				<div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+-					<p className="text-red-600 dark:text-red-400 font-medium">Error loading statistics</p>
++					<p className="text-red-600 dark:text-red-400 font-medium">统计加载出错</p>
+ 					<p className="text-red-500 dark:text-red-300 text-sm mt-1">{error}</p>
+ 				</div>
+ 			</div>
+@@ -130,7 +131,7 @@
+ 	if (!statistics) {
+ 		return (
+ 			<div className="p-8 text-center">
+-				<p className="text-gray-500 dark:text-gray-400">No statistics available</p>
++				<p className="text-gray-500 dark:text-gray-400">暂无统计</p>
+ 			</div>
+ 		);
+ 	}
+@@ -150,7 +151,7 @@
+ 				<div className="flex-1 min-w-0">
+ 					<p className="font-medium text-gray-900 dark:text-gray-100 truncate">{task.title}</p>
+ 					<p className="text-sm text-gray-500 dark:text-gray-400">
+-						{task.id} • {showDate === 'created' ? 'Created' : 'Updated'} <StoredDate value={displayDate} dateFormat={dateFormat} />
++						{task.id} • {showDate === 'created' ? '创建时间' : '更新时间'} <StoredDate value={displayDate} dateFormat={dateFormat} />
+ 					</p>
+ 				</div>
+ 			</div>
+@@ -243,7 +244,7 @@
+ 		{
+ 			key: 'no-priority',
+ 			priority: '',
+-			label: 'No Priority',
++			label: '未设优先级',
+ 			count: statistics.noPriorityCount,
+ 		},
+ 	].filter(({ count }) => count > 0);
+@@ -253,7 +254,7 @@
+ 			{/* Header */}
+ 			<div className="text-center">
+ 				<h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+-					{projectName ? `${projectName} Statistics` : 'Project Statistics'}
++					{projectName ? `${projectName} Statistics` : '项目统计'}
+ 				</h1>
+ 				<p className="text-gray-600 dark:text-gray-400">
+ 					Overview of your project's task metrics and activity
+@@ -272,7 +273,7 @@
+ 						</div>
+ 						<div className="ml-4">
+ 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.totalTasks}</p>
+-							<p className="text-gray-600 dark:text-gray-400 text-sm">Total Tasks</p>
++							<p className="text-gray-600 dark:text-gray-400 text-sm">任务总数</p>
+ 						</div>
+ 					</div>
+ 				</div>
+@@ -287,7 +288,7 @@
+ 						</div>
+ 						<div className="ml-4">
+ 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.completedTasks}</p>
+-							<p className="text-gray-600 dark:text-gray-400 text-sm">Completed</p>
++							<p className="text-gray-600 dark:text-gray-400 text-sm">已完成</p>
+ 						</div>
+ 					</div>
+ 				</div>
+@@ -302,7 +303,7 @@
+ 						</div>
+ 						<div className="ml-4">
+ 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.completionPercentage}%</p>
+-							<p className="text-gray-600 dark:text-gray-400 text-sm">Completion</p>
++							<p className="text-gray-600 dark:text-gray-400 text-sm">完成率</p>
+ 						</div>
+ 					</div>
+ 				</div>
+@@ -317,7 +318,7 @@
+ 						</div>
+ 						<div className="ml-4">
+ 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.draftCount}</p>
+-							<p className="text-gray-600 dark:text-gray-400 text-sm">Drafts</p>
++							<p className="text-gray-600 dark:text-gray-400 text-sm">草稿</p>
+ 						</div>
+ 					</div>
+ 				</div>
+@@ -325,7 +326,7 @@
+ 
+ 			{/* Progress Bar */}
+ 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+-				<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Overall Progress</h3>
++				<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">总体进度</h3>
+ 				<div className="w-full bg-gray-200 dark:bg-gray-700 rounded-circle h-4 mb-2">
+ 					<div 
+ 						className="bg-gradient-to-r from-blue-500 to-green-500 h-4 rounded-circle transition-all duration-300"
+@@ -342,7 +343,7 @@
+ 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+ 				{/* Status Distribution */}
+ 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Status Distribution</h3>
++					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">状态分布</h3>
+ 					<div className="space-y-4">
+ 						{Object.entries(statistics.statusCounts)
+ 							.filter(([, count]) => count > 0)
+@@ -351,7 +352,7 @@
+ 								<div className="flex items-center space-x-3">
+ 									<StatusIcon status={status} />
+ 									<span className={`px-3 py-1 rounded-circle text-sm font-medium ${getStatusColor(status)}`}>
+-										{status}
++										{uiLabel(status)}
+ 									</span>
+ 								</div>
+ 								<div className="flex items-center space-x-3">
+@@ -375,7 +376,7 @@
+ 
+ 				{/* Priority Distribution */}
+ 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Priority Distribution</h3>
++					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">优先级分布</h3>
+ 					<div className="space-y-4">
+ 						{priorityBreakdown.map(({ key, priority, label, count }) => (
+ 							<div key={key} className="flex items-center justify-between">
+@@ -409,7 +410,7 @@
+ 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+ 				{/* Recently Created */}
+ 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recently Created</h3>
++					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">最近创建</h3>
+ 					{statistics.recentActivity.created.length > 0 ? (
+ 						<div className="space-y-3">
+ 							{statistics.recentActivity.created.map((task) => (
+@@ -421,13 +422,13 @@
+ 							))}
+ 						</div>
+ 					) : (
+-						<p className="text-gray-500 dark:text-gray-400 text-sm">No recently created tasks</p>
++						<p className="text-gray-500 dark:text-gray-400 text-sm">暂无最近创建的任务</p>
+ 					)}
+ 				</div>
+ 
+ 				{/* Recently Updated */}
+ 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recently Updated</h3>
++					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">最近更新</h3>
+ 					{statistics.recentActivity.updated.length > 0 ? (
+ 						<div className="space-y-3">
+ 							{statistics.recentActivity.updated.map((task) => (
+@@ -439,7 +440,7 @@
+ 							))}
+ 						</div>
+ 					) : (
+-						<p className="text-gray-500 dark:text-gray-400 text-sm">No recently updated tasks</p>
++						<p className="text-gray-500 dark:text-gray-400 text-sm">暂无最近更新的任务</p>
+ 					)}
+ 				</div>
+ 			</div>
+@@ -447,11 +448,11 @@
+ 			{/* Project Health - Completely redesigned as a summary row */}
+ 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+ 				<div className="flex items-center justify-between">
+-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Project Health</h3>
++					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">项目概况</h3>
+ 					
+ 					<div className="flex items-center space-x-4 text-sm">
+ 						<div className="flex items-center space-x-1">
+-							<span className="text-gray-600 dark:text-gray-400">Avg age:</span>
++							<span className="text-gray-600 dark:text-gray-400">平均存续：</span>
+ 							<span className="font-medium text-gray-900 dark:text-gray-100">{statistics.projectHealth.averageTaskAge}d</span>
+ 						</div>
+ 						
+@@ -472,7 +473,7 @@
+ 						{statistics.projectHealth.staleTasks.length === 0 && statistics.projectHealth.blockedTasks.length === 0 && (
+ 							<div className="flex items-center space-x-1">
+ 								<div className="w-2 h-2 bg-green-500 rounded-circle"></div>
+-								<span className="font-medium text-green-700 dark:text-green-400">All good!</span>
++								<span className="font-medium text-green-700 dark:text-green-400">连接正常</span>
+ 							</div>
+ 						)}
+ 					</div>
+--- a/src/web/components/SuccessToast.tsx
++++ b/src/web/components/SuccessToast.tsx
+@@ -14,7 +14,7 @@
+ 				<button
+ 					onClick={onDismiss}
+ 					className="ml-2 text-green-200 dark:text-green-300 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-400 rounded p-1"
+-					aria-label="Dismiss"
++					aria-label="关闭"
+ 				>
+ 					<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+--- a/src/web/components/TaskCard.tsx
++++ b/src/web/components/TaskCard.tsx
+@@ -82,8 +82,8 @@
+   const isFromOtherBranch = Boolean(task.branch);
+   const acceptanceCriteriaProgress = getAcceptanceCriteriaProgressCounts(task);
+   const accessibleLabel = acceptanceCriteriaProgress
+-    ? `Open ${task.id}: ${task.title}. Acceptance criteria progress: ${acceptanceCriteriaProgress.checked} of ${acceptanceCriteriaProgress.total}`
+-    : `Open ${task.id}: ${task.title}`;
++    ? `打开 ${task.id}：${task.title}。验收进度：${acceptanceCriteriaProgress.checked}/${acceptanceCriteriaProgress.total}`
++    : `打开 ${task.id}：${task.title}`;
+ 
+   const handleDragStart = (e: React.DragEvent) => {
+     // Prevent dragging cross-branch tasks
+@@ -150,12 +150,12 @@
+     const diffMs = now.getTime() - date.getTime();
+     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+ 
+-    if (diffDays === 0) return 'today';
+-    if (diffDays === 1) return 'yesterday';
+-    if (diffDays < 7) return `${diffDays}d ago`;
+-    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+-    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+-    return `${Math.floor(diffDays / 365)}y ago`;
++    if (diffDays === 0) return '今天';
++    if (diffDays === 1) return '昨天';
++    if (diffDays < 7) return `${diffDays} 天前`;
++    if (diffDays < 30) return `${Math.floor(diffDays / 7)} 周前`;
++    if (diffDays < 365) return `${Math.floor(diffDays / 30)} 个月前`;
++    return `${Math.floor(diffDays / 365)} 年前`;
+   };
+ 
+   const getPriorityBadge = (priority?: string) => {
+@@ -293,7 +293,7 @@
+         {/* Footer with date */}
+         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] text-gray-400 dark:text-gray-500 mt-2 pt-1.5 border-t border-gray-100 dark:border-gray-600/50 transition-colors duration-200">
+           <span>{formatRelativeDate(task.createdDate)}</span>
+-          {task.dueDate && <span>Due: <StoredDate value={task.dueDate} dateFormat={dateFormat} /></span>}
++          {task.dueDate && <span>截止： <StoredDate value={task.dueDate} dateFormat={dateFormat} /></span>}
+           {task.assignee.length > 0 && (
+             <span className="truncate max-w-[80px]" title={task.assignee.join(', ')}>
+               {task.assignee[0]}
+--- a/src/web/components/TaskColumn.tsx
++++ b/src/web/components/TaskColumn.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import React from 'react';
+ import { type Task } from '../../types';
+ import { compareTaskIds, sortByPriority } from '../../utils/task-sorting';
+@@ -252,7 +253,7 @@
+     >
+       <div className="flex items-center justify-between mb-4">
+         <div className="flex items-center gap-2">
+-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 transition-colors duration-200">{title}</h3>
++          <h3 className="font-semibold text-gray-900 dark:text-gray-100 transition-colors duration-200">{uiLabel(title)}</h3>
+           <span className={`px-2 py-1 text-xs font-medium rounded-circle ${getStatusBadgeClass(title)}`}>
+             {tasks.length}
+           </span>
+@@ -264,8 +265,8 @@
+               type="button"
+               onClick={() => setShowMenu(!showMenu)}
+               className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none"
+-              title="Column actions"
+-              aria-label="Column actions"
++              title="列操作"
++              aria-label="列操作"
+               aria-haspopup="menu"
+               aria-expanded={showMenu}
+               aria-controls={columnActionsId}
+@@ -424,8 +425,8 @@
+         {isEmpty && !isDragOver && (
+           <div className="text-center py-2 text-gray-400 dark:text-gray-500 text-xs transition-colors duration-200">
+             {dragSourceStatus && dragSourceStatus !== title
+-              ? `Drop to move`
+-              : `Empty`}
++              ? `松开以移动`
++              : `暂无任务`}
+           </div>
+         )}
+ 
+@@ -435,7 +436,7 @@
+ 	            <button
+ 	              onClick={onCleanup}
+ 	              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-200"
+-	              title="Clean up old completed tasks"
++	              title="收起已完成的旧任务"
+ 	            >
+ 	              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+ 	                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+--- a/src/web/components/TaskDetailsModal.tsx
++++ b/src/web/components/TaskDetailsModal.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+ import { isLocalEditableTask, type AcceptanceCriterion, type Milestone, type Task, type TaskComment } from "../../types";
+ import { type TaskDetail, taskDependencyGraph, taskReadiness } from "../../core/task-detail";
+@@ -158,7 +159,7 @@
+       : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+   return (
+     <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium ${tone}`}>
+-      {status}
++      {uiLabel(status)}
+     </span>
+   );
+ };
+@@ -674,7 +675,7 @@
+     if (destination.protocol !== "http:" && destination.protocol !== "https:") return;
+     // Same-page anchors (markdown heading links) do not unload the form.
+     if (destination.pathname === window.location.pathname && destination.search === window.location.search) return;
+-    if (window.confirm("Discard unsaved changes and leave this task?")) return;
++    if (window.confirm("放弃未保存的修改并离开此任务？")) return;
+     event.preventDefault();
+     event.stopPropagation();
+   };
+@@ -682,7 +683,7 @@
+   const handleCancelEdit = () => {
+     if (demoting) return;
+     if (isDirty) {
+-      const confirmDiscard = window.confirm("Discard unsaved changes?");
++      const confirmDiscard = window.confirm("放弃未保存的修改？");
+       if (!confirmDiscard) return;
+     }
+     if (isCreateMode) {
+@@ -805,7 +806,7 @@
+ 
+     // Validation for create mode
+     if (isCreateMode && !title.trim()) {
+-      setError("Title is required");
++      setError("请填写标题");
+       setSaving(false);
+       return;
+     }
+@@ -856,7 +857,7 @@
+       }
+     } catch (err) {
+       // Extract and display the error message from API response
+-      let errorMessage = 'Failed to save task';
++      let errorMessage = '任务保存失败';
+ 
+       if (err instanceof Error) {
+         errorMessage = err.message;
+@@ -885,7 +886,7 @@
+     } catch (err) {
+       // rollback
+       setCriteria(criteria);
+-      console.error("Failed to update criterion", err);
++      console.error("更新验收项失败", err);
+     }
+   };
+ 
+@@ -903,7 +904,7 @@
+       if (onSaved) await onSaved();
+     } catch (err) {
+       setDefinitionOfDone(definitionOfDone);
+-      console.error("Failed to update Definition of Done item", err);
++      console.error("更新完成标准失败", err);
+     }
+   };
+ 
+@@ -932,7 +933,7 @@
+         await apiClient.updateTask(task.id, updates);
+         if (onSaved) await onSaved();
+       } catch (err) {
+-        console.error("Failed to update task metadata", err);
++        console.error("更新任务信息失败", err);
+         setError(err instanceof Error ? err.message : String(err));
+       }
+     }
+@@ -964,7 +965,7 @@
+         try {
+           await onSaved();
+         } catch (refreshError) {
+-          console.error("Task type was saved, but refreshing task data failed", refreshError);
++          console.error("类型已保存，但刷新任务数据失败", refreshError);
+         }
+       }
+     } catch (updateError) {
+@@ -1018,7 +1019,7 @@
+ 	const handleComplete = async () => {
+ 		if (demoting) return;
+ 		if (!task) return;
+-		if (!window.confirm("Complete this task? It will be moved to the completed folder.")) return;
++		if (!window.confirm("收起此已完成任务？它将移入已完成目录。")) return;
+ 		try {
+ 			await apiClient.completeTask(task.id);
+ 			if (onSaved) await onSaved();
+@@ -1030,7 +1031,7 @@
+ 
+ 	const handleDemote = async () => {
+ 		if (!task || !canDemote || activeDemotionRequest.current !== null) return;
+-		if (!window.confirm(`Demote "${task.title}" to draft? It will be moved to the drafts folder.`)) return;
++		if (!window.confirm(`将「${task.title}」转为草稿？任务将移入草稿目录。`)) return;
+ 
+ 		const request = { identity: demotionIdentity };
+ 		activeDemotionRequest.current = request;
+@@ -1102,7 +1103,7 @@
+   const handleArchive = async () => {
+     if (demoting) return;
+     if (!task || !onArchive) return;
+-    if (!window.confirm(`Are you sure you want to archive "${task.title}"? This will move the task to the archive folder.`)) return;
++    if (!window.confirm(`确认归档「${task.title}」？任务将移入归档目录。`)) return;
+     await onArchive();
+   };
+ 
+@@ -1126,12 +1127,12 @@
+ 		if (demoting) return;
+         // When in edit mode, confirm closing if dirty
+         if (mode === "edit" && isDirty) {
+-          if (!window.confirm("Discard unsaved changes and close?")) return;
++          if (!window.confirm("放弃未保存的修改并关闭？")) return;
+         }
+         refreshAfterCommentChange();
+         onClose();
+       }}
+-      title={isCreateMode ? (isDraftMode ? "Create New Draft" : "Create New Task") : `${displayId} — ${task.title}`}
++      title={isCreateMode ? (isDraftMode ? "新建草稿" : "新建任务") : `${displayId} — ${task.title}`}
+       maxWidthClass="max-w-5xl"
+       disableEscapeClose={mode === "edit" || mode === "create" || demoting}
+       actions={
+@@ -1141,10 +1142,10 @@
+ 		              onClick={handleComplete}
+ 		              disabled={demoting}
+ 		              className="inline-flex items-center px-3 py-2 sm:px-4 rounded-lg text-sm font-medium text-white bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700 dark:hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200"
+-		              title="Move to completed folder (removes from board)"
++		              title="移入已完成目录并从看板收起"
+ 		            >
+-		              <span className="sm:hidden">Complete</span>
+-		              <span className="hidden sm:inline">Mark as completed</span>
++		              <span className="sm:hidden">收起完成任务</span>
++		              <span className="hidden sm:inline">标记为完成并收起</span>
+ 		            </button>
+ 		          )}
+ 		          {canDemote && mode === "preview" && (
+@@ -1152,12 +1153,12 @@
+ 		              onClick={() => void handleDemote()}
+ 		              disabled={demoting}
+ 		              className="inline-flex items-center px-3 py-2 sm:px-4 rounded-lg text-sm font-medium text-white bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+-		              title="Move task to drafts"
++		              title="将任务移入草稿"
+ 		            >
+-		              {demoting ? "Demoting…" : (
++		              {demoting ? "正在转为草稿…" : (
+ 		                <>
+-		                  <span className="sm:hidden">Demote</span>
+-		                  <span className="hidden sm:inline">Demote to draft</span>
++		                  <span className="sm:hidden">转为草稿</span>
++		                  <span className="hidden sm:inline">转为草稿</span>
+ 		                </>
+ 		              )}
+ 		            </button>
+@@ -1167,13 +1168,13 @@
+ 		              onClick={() => setMode("edit")}
+ 		              disabled={demoting}
+ 		              className="inline-flex items-center px-3 py-2 sm:px-4 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200"
+-		              title="Edit"
++		              title="编辑"
+ 		            >
+               <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+               </svg>
+-              Edit
++              编辑
+             </button>
+           ) : (mode === "edit" || mode === "create") ? (
+             <div className="flex items-center gap-2">
+@@ -1181,23 +1182,23 @@
+ 		                onClick={handleCancelEdit}
+ 		                disabled={demoting}
+ 		                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200"
+-		                title="Cancel"
++		                title="取消"
+ 		              >
+                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                 </svg>
+-                Cancel
++                取消
+               </button>
+ 	              <button
+ 		                onClick={() => void handleSave()}
+ 		                disabled={saving || demoting}
+ 		                className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200 disabled:opacity-50"
+-		                title="Save"
++		                title="保存"
+ 		              >
+                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                 </svg>
+-                {saving ? "Saving…" : (isCreateMode ? "Create" : "Save")}
++                {saving ? "保存中…" : (isCreateMode ? "创建" : "保存")}
+               </button>
+             </div>
+           ) : null}
+@@ -1216,21 +1217,21 @@
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+           </svg>
+           <div className="flex-1">
+-            <span className="font-medium">Read-only:</span> This task exists in the <span className="font-semibold">{task?.branch}</span> branch. Switch to that branch to edit it.
++            <span className="font-medium">只读：</span> 此任务位于 <span className="font-semibold">{task?.branch}</span> 分支，请切换到对应分支后编辑。
+           </div>
+         </div>
+       )}
+ 
+       {parentTask && task && (
+         <nav
+-          aria-label="Task hierarchy"
++          aria-label="任务层级"
+           className="mb-4"
+           data-task-hierarchy
+           onClickCapture={confirmNavigationAwayFromEdits}
+         >
+           <ol className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
+             <li className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+-              Parent
++              父任务
+             </li>
+             <li className="min-w-0 max-w-full">
+               <button
+@@ -1240,7 +1241,7 @@
+                 data-parent-task-id={parentTask.id}
+                 data-parent-task-href={createUrlPath('/tasks', parentTask.id, parentTask.title)}
+                 className="group inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-2 py-1 text-left text-gray-700 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-default disabled:hover:bg-transparent dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white"
+-                aria-label={`Open parent task ${parentTask.id}: ${parentTask.title} (${parentTask.status})`}
++                aria-label={`打开父任务 ${parentTask.id}：${parentTask.title}（${uiLabel(parentTask.status)}）`}
+               >
+                 <span className="shrink-0 font-mono text-xs text-gray-500 dark:text-gray-400">
+                   {parentTask.id}
+@@ -1265,26 +1266,26 @@
+           {/* Title field for create mode */}
+           {isCreateMode && (
+             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-              <SectionHeader title="Title" />
++              <SectionHeader title="标题" />
+               <input
+                 type="text"
+                 value={title}
+                 onChange={(e) => setTitle(e.target.value)}
+-                placeholder="Enter task title"
++                placeholder="输入任务标题"
+                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors duration-200"
+               />
+             </div>
+           )}
+           {/* Description */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-            <SectionHeader title="Description" />
++            <SectionHeader title="问题描述" />
+             {mode === "preview" ? (
+               description ? (
+                 <div className="prose prose-sm !max-w-none wmde-markdown" data-color-mode={theme}>
+                   <MermaidMarkdown source={description} />
+                 </div>
+               ) : (
+-                <div className="text-sm text-gray-500 dark:text-gray-400">No description</div>
++                <div className="text-sm text-gray-500 dark:text-gray-400">暂无描述</div>
+               )
+             ) : (
+               <div className="border border-gray-200 dark:border-gray-700 rounded-md">
+@@ -1302,10 +1303,10 @@
+           {subtasks.length > 0 && (
+             <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+               <SectionHeader
+-                title="Subtasks"
++                title="子任务"
+                 right={
+                   subtaskProgress
+-                    ? `${subtaskProgress.completed} of ${subtaskProgress.total} complete`
++                    ? `已完成 ${subtaskProgress.completed} / ${subtaskProgress.total}`
+                     : undefined
+                 }
+               />
+@@ -1321,7 +1322,7 @@
+                       data-subtask-id={subtask.id}
+                       data-subtask-href={createUrlPath('/tasks', subtask.id, subtask.title)}
+                       className="group flex w-full items-center gap-3 rounded-md px-2 py-3 text-left transition-colors duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-default disabled:hover:bg-transparent dark:hover:bg-gray-700/50"
+-                      aria-label={`Open subtask ${subtask.id}: ${subtask.title} (${subtask.status})`}
++                      aria-label={`打开子任务 ${subtask.id}：${subtask.title}（${uiLabel(subtask.status)}）`}
+                     >
+                       <span className="min-w-0 flex-1">
+                         <span className="flex flex-wrap items-center gap-2">
+@@ -1352,7 +1353,7 @@
+ 
+           {/* References */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-            <SectionHeader title="References" />
++            <SectionHeader title="参考链接" />
+             <div className="space-y-3">
+               {references.length > 0 ? (
+                 <ul className="space-y-2">
+@@ -1381,7 +1382,7 @@
+                             handleInlineMetaUpdate({ references: newRefs });
+                           }}
+                           className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
+-                          title="Remove reference"
++                          title="移除参考链接"
+                         >
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+@@ -1392,7 +1393,7 @@
+                   ))}
+                 </ul>
+               ) : (
+-                <p className="text-sm text-gray-500 dark:text-gray-400">No references</p>
++                <p className="text-sm text-gray-500 dark:text-gray-400">暂无参考链接</p>
+               )}
+               {mode === "preview" && !isFromOtherBranch && (
+                 <form
+@@ -1410,14 +1411,14 @@
+                   <input
+                     name="newRef"
+                     type="text"
+-                    placeholder="URL or file path..."
++                    placeholder="网址或文件路径…"
+                     className="flex-1 text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                   />
+                   <button
+                     type="submit"
+                     className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                   >
+-                    Add
++                    添加
+                   </button>
+                 </form>
+               )}
+@@ -1426,7 +1427,7 @@
+ 
+           {/* Modified files */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-            <SectionHeader title={`Modified files${modifiedFiles.length ? ` (${modifiedFiles.length})` : ""}`} />
++            <SectionHeader title={`修改的文件${modifiedFiles.length ? ` (${modifiedFiles.length})` : ""}`} />
+             <div className="space-y-3">
+               {modifiedFiles.length > 0 ? (
+                 // A finished task can list hundreds of paths, so the list scrolls inside the
+@@ -1446,7 +1447,7 @@
+                             handleInlineMetaUpdate({ modifiedFiles: newFiles });
+                           }}
+                           className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all flex-shrink-0 mt-0.5"
+-                          title="Remove modified file"
++                          title="移除文件"
+                         >
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+@@ -1457,7 +1458,7 @@
+                   ))}
+                 </ul>
+               ) : (
+-                <p className="text-sm text-gray-500 dark:text-gray-400">No modified files</p>
++                <p className="text-sm text-gray-500 dark:text-gray-400">暂无修改文件</p>
+               )}
+               {mode === "preview" && !isFromOtherBranch && (
+                 <form
+@@ -1475,14 +1476,14 @@
+                   <input
+                     name="newModifiedFile"
+                     type="text"
+-                    placeholder="Path from project root..."
++                    placeholder="相对项目根目录的路径…"
+                     className="flex-1 text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                   />
+                   <button
+                     type="submit"
+                     className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                   >
+-                    Add
++                    添加
+                   </button>
+                 </form>
+               )}
+@@ -1492,7 +1493,7 @@
+           {/* Documentation */}
+           {documentation.length > 0 && (
+             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-              <SectionHeader title="Documentation" />
++              <SectionHeader title="文档" />
+               <div className="space-y-2">
+                 <ul className="space-y-2">
+                   {documentation.map((doc, idx) => (
+@@ -1523,9 +1524,9 @@
+           {/* Acceptance Criteria */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+             <SectionHeader
+-              title={`Acceptance Criteria ${totalCount ? `(${checkedCount}/${totalCount})` : ""}`}
++              title={`验收条件 ${totalCount ? `(${checkedCount}/${totalCount})` : ""}`}
+               right={mode === "preview" ? (
+-                <span>Toggle to update</span>
++                <span>点击切换</span>
+               ) : null}
+             />
+             {mode === "preview" ? (
+@@ -1545,7 +1546,7 @@
+                   </li>
+                 ))}
+                 {totalCount === 0 && (
+-                  <li className="text-sm text-gray-500 dark:text-gray-400">No acceptance criteria</li>
++                  <li className="text-sm text-gray-500 dark:text-gray-400">暂无验收条件</li>
+                 )}
+               </ul>
+             ) : (
+@@ -1556,9 +1557,9 @@
+           {/* Definition of Done */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+             <SectionHeader
+-              title={`Definition of Done ${definitionTotalCount ? `(${definitionCheckedCount}/${definitionTotalCount})` : ""}`}
++              title={`完成标准 ${definitionTotalCount ? `(${definitionCheckedCount}/${definitionTotalCount})` : ""}`}
+               right={mode === "preview" ? (
+-                <span>Toggle to update</span>
++                <span>点击切换</span>
+               ) : null}
+             />
+             {mode === "preview" ? (
+@@ -1575,14 +1576,14 @@
+                   </li>
+                 ))}
+                 {definitionTotalCount === 0 && (
+-                  <li className="text-sm text-gray-500 dark:text-gray-400">No Definition of Done items</li>
++                  <li className="text-sm text-gray-500 dark:text-gray-400">暂无完成标准</li>
+                 )}
+               </ul>
+             ) : (
+               <AcceptanceCriteriaEditor
+                 criteria={definitionOfDone}
+                 onChange={setDefinitionOfDone}
+-                label="Definition of Done"
++                label="完成标准"
+                 preserveIndices
+                 disableToggle={isCreateMode}
+               />
+@@ -1591,21 +1592,21 @@
+ 
+           {dependencyGraph && dependencyGraph.nodes.length > 1 && (
+             <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+-              <SectionHeader title="Dependency Graph" />
++              <SectionHeader title="依赖关系图" />
+               <DependencyGraphSection graph={dependencyGraph} />
+             </section>
+           )}
+ 
+           {/* Implementation Plan */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-            <SectionHeader title="Implementation Plan" />
++            <SectionHeader title="实施计划" />
+             {mode === "preview" ? (
+               plan ? (
+                 <div className="prose prose-sm !max-w-none wmde-markdown" data-color-mode={theme}>
+                   <MermaidMarkdown source={plan} />
+                 </div>
+               ) : (
+-                <div className="text-sm text-gray-500 dark:text-gray-400">No plan</div>
++                <div className="text-sm text-gray-500 dark:text-gray-400">暂无计划</div>
+               )
+             ) : (
+               <div className="border border-gray-200 dark:border-gray-700 rounded-md">
+@@ -1622,14 +1623,14 @@
+ 
+           {/* Implementation Notes */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-            <SectionHeader title="Implementation Notes" />
++            <SectionHeader title="补充说明" />
+             {mode === "preview" ? (
+               notes ? (
+                 <div className="prose prose-sm !max-w-none wmde-markdown" data-color-mode={theme}>
+                   <MermaidMarkdown source={notes} />
+                 </div>
+               ) : (
+-                <div className="text-sm text-gray-500 dark:text-gray-400">No notes</div>
++                <div className="text-sm text-gray-500 dark:text-gray-400">暂无说明</div>
+               )
+             ) : (
+               <div className="border border-gray-200 dark:border-gray-700 rounded-md">
+@@ -1647,7 +1648,7 @@
+           {/* Comments */}
+           {!isCreateMode && (
+             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-              <SectionHeader title={`Comments${comments.length ? ` (${comments.length})` : ""}`} />
++              <SectionHeader title={`评论${comments.length ? ` (${comments.length})` : ""}`} />
+               {comments.length > 0 ? (
+                 <div className="space-y-4">
+                   {comments.map((comment) => (
+@@ -1664,7 +1665,7 @@
+                   ))}
+                 </div>
+               ) : (
+-                <div className="text-sm text-gray-500 dark:text-gray-400">No comments</div>
++                <div className="text-sm text-gray-500 dark:text-gray-400">暂无评论</div>
+               )}
+               {mode === "edit" && !isFromOtherBranch && (
+                 <div className="mt-4 space-y-2">
+@@ -1672,14 +1673,14 @@
+                     type="text"
+                     value={commentAuthor}
+                     onChange={(e) => setCommentAuthor(e.target.value)}
+-                    placeholder="Author"
++                    placeholder="作者"
+                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors duration-200"
+                   />
+                   <textarea
+                     value={commentBody}
+                     onChange={(e) => setCommentBody(e.target.value)}
+                     rows={4}
+-                    placeholder="Add a comment..."
++                    placeholder="添加评论…"
+                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                   />
+                   <div className="flex justify-end">
+@@ -1689,7 +1690,7 @@
+                       disabled={commentSaving || commentBody.trim().length === 0}
+                       className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
+                     >
+-                      {commentSaving ? "Adding..." : "Add comment"}
++                      {commentSaving ? "添加中…" : "添加评论"}
+                     </button>
+                   </div>
+                 </div>
+@@ -1700,7 +1701,7 @@
+           {/* Final Summary */}
+           {(mode !== "preview" || finalSummary.trim().length > 0) && (
+             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+-              <SectionHeader title="Final Summary" right="Completion summary" />
++              <SectionHeader title="完成总结" right="完成总结" />
+               {mode === "preview" ? (
+                 <div className="prose prose-sm !max-w-none wmde-markdown" data-color-mode={theme}>
+                   <MermaidMarkdown source={finalSummary} />
+@@ -1714,7 +1715,7 @@
+                     height={220}
+                     data-color-mode={theme}
+                     textareaProps={{
+-                      placeholder: "PR-style summary of what was implemented (write when task is complete)",
++                      placeholder: "记录实际完成内容与验证结果（完成后填写）",
+                     }}
+                   />
+                 </div>
+@@ -1728,18 +1729,18 @@
+           {/* Dates */}
+ 	          {task && (
+ 	            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+-	              <div><span className="font-semibold text-gray-800 dark:text-gray-100">Created:</span> <StoredDate value={task.createdDate} dateFormat={dateFormat} className="text-gray-700 dark:text-gray-200" /></div>
++	              <div><span className="font-semibold text-gray-800 dark:text-gray-100">创建于：</span> <StoredDate value={task.createdDate} dateFormat={dateFormat} className="text-gray-700 dark:text-gray-200" /></div>
+ 	              {task.updatedDate && (
+-	                <div><span className="font-semibold text-gray-800 dark:text-gray-100">Updated:</span> <StoredDate value={task.updatedDate} dateFormat={dateFormat} className="text-gray-700 dark:text-gray-200" /></div>
++	                <div><span className="font-semibold text-gray-800 dark:text-gray-100">更新于：</span> <StoredDate value={task.updatedDate} dateFormat={dateFormat} className="text-gray-700 dark:text-gray-200" /></div>
+ 	              )}
+ 	              {task.dueDate && mode === "preview" && (
+-	                <div><span className="font-semibold text-gray-800 dark:text-gray-100">Due:</span> <StoredDate value={task.dueDate} dateFormat={dateFormat} className="text-gray-700 dark:text-gray-200" /></div>
++	                <div><span className="font-semibold text-gray-800 dark:text-gray-100">截止：</span> <StoredDate value={task.dueDate} dateFormat={dateFormat} className="text-gray-700 dark:text-gray-200" /></div>
+ 	              )}
+ 	            </div>
+ 	          )}
+           {mode !== "preview" && (
+             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-              <SectionHeader title="Due" />
++              <SectionHeader title="截止日期" />
+               <input
+                 type="date"
+                 value={dueDate}
+@@ -1751,7 +1752,7 @@
+           {/* Title (editable for existing tasks) */}
+           {task && (
+             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-              <SectionHeader title="Title" />
++              <SectionHeader title="标题" />
+               <input
+                 type="text"
+                 value={title}
+@@ -1776,15 +1777,15 @@
+ 
+           {/* Status */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-            <SectionHeader title="Status" />
++            <SectionHeader title="状态" />
+             <StatusSelect current={status} onChange={(val) => handleInlineMetaUpdate({ status: val })} disabled={isFromOtherBranch || isOpenDraft} />
+           </div>
+ 
+           {/* Type */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-            <SectionHeader title="Type" />
++            <SectionHeader title="类型" />
+             <select
+-              aria-label="Task type"
++              aria-label="任务类型"
+               aria-invalid={typeUpdateError ? true : undefined}
+               aria-describedby={typeUpdateError ? "task-type-update-error" : undefined}
+               className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isFromOtherBranch || isTypeUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+@@ -1792,13 +1793,13 @@
+               onChange={(event) => void handleTaskTypeChange(event.target.value)}
+               disabled={isFromOtherBranch || isTypeUpdating}
+             >
+-              <option value="">No type</option>
++              <option value="">未设类型</option>
+               {!canonicalTypeSelection && taskType.trim() ? (
+-                <option value={taskType}>{taskType} (not configured)</option>
++                <option value={taskType}>{uiLabel(taskType)}（未配置）</option>
+               ) : null}
+               {typeOptions.map((typeOption) => (
+                 <option key={typeOption} value={typeOption}>
+-                  {typeOption}
++                  {uiLabel(typeOption)}
+                 </option>
+               ))}
+             </select>
+@@ -1811,43 +1812,43 @@
+ 
+           {/* Assignee */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-            <SectionHeader title="Assignee" />
++            <SectionHeader title="负责人" />
+             <ChipInput
+               name="assignee"
+               label=""
+               value={assignee}
+               onChange={(value) => handleInlineMetaUpdate({ assignee: value })}
+-              placeholder="Type name and press Enter"
++              placeholder="输入名称，按回车添加"
+               disabled={isFromOtherBranch}
+             />
+           </div>
+ 
+           {/* Labels */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-            <SectionHeader title="Labels" />
++            <SectionHeader title="标签" />
+             <ChipInput
+               name="labels"
+               label=""
+               value={labels}
+               onChange={(value) => handleInlineMetaUpdate({ labels: value })}
+-              placeholder="Type label and press Enter or comma"
++              placeholder="输入标签，按回车或逗号添加"
+               disabled={isFromOtherBranch}
+             />
+           </div>
+ 
+           {/* Priority */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-            <SectionHeader title="Priority" />
++            <SectionHeader title="优先级" />
+             <select
+               className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isFromOtherBranch ? 'opacity-60 cursor-not-allowed' : ''}`}
+               value={priority}
+               onChange={(e) => handleInlineMetaUpdate({ priority: e.target.value as any })}
+               disabled={isFromOtherBranch}
+             >
+-              <option value="">No Priority</option>
++              <option value="">未设优先级</option>
+               {priorityOptions.map((option) => (
+                 <option key={option.value} value={option.value}>
+-                  {option.label}
++                  {uiLabel(option.label)}
+                 </option>
+               ))}
+             </select>
+@@ -1856,17 +1857,17 @@
+           {/* Project */}
+           {projectOptions.length > 0 && (
+             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-              <SectionHeader title="Project" />
++              <SectionHeader title="项目" />
+               <select
+                 className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isFromOtherBranch ? 'opacity-60 cursor-not-allowed' : ''}`}
+-                aria-label="Task project"
++                aria-label="所属项目"
+                 value={projectSelectionValue}
+                 onChange={(e) => handleInlineMetaUpdate({ project: e.target.value })}
+                 disabled={isFromOtherBranch}
+               >
+-                <option value="">No Project</option>
++                <option value="">未关联项目</option>
+                 {!canonicalProjectSelection && project.trim() ? (
+-                  <option value={project}>{project} (not configured)</option>
++                  <option value={project}>{project}（未配置）</option>
+                 ) : null}
+                 {projectOptions.map((option) => (
+                   <option key={option} value={option}>
+@@ -1879,7 +1880,7 @@
+ 
+           {/* Milestone */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-            <SectionHeader title="Milestone" />
++            <SectionHeader title="里程碑" />
+             <select
+               className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isFromOtherBranch ? 'opacity-60 cursor-not-allowed' : ''}`}
+               value={milestoneSelectionValue}
+@@ -1890,7 +1891,7 @@
+ 				}}
+               disabled={isFromOtherBranch}
+             >
+-              <option value="">No milestone</option>
++              <option value="">无里程碑</option>
+               {!hasMilestoneSelection && milestoneSelectionValue ? (
+                 <option value={milestoneSelectionValue}>{resolveMilestoneLabel(milestoneSelectionValue)}</option>
+               ) : null}
+@@ -1904,7 +1905,7 @@
+ 
+           {/* Dependencies */}
+           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+-            <SectionHeader title="Dependencies" />
++            <SectionHeader title="依赖任务" />
+             <DependencyInput
+               value={dependencies}
+               onChange={(value) => handleInlineMetaUpdate({ dependencies: value })}
+@@ -1923,7 +1924,7 @@
+                 }`}
+               >
+                 <span aria-hidden="true">{shownReadiness.isReady ? '✓' : '⏳'}</span>
+-                <span>{shownReadiness.isReady ? 'Ready to start' : formatReadinessBlockers(shownReadiness)}</span>
++                <span>{shownReadiness.isReady ? '可开始' : formatReadinessBlockers(shownReadiness)}</span>
+               </div>
+             )}
+           </div>
+@@ -1939,7 +1940,7 @@
+ 		                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ 		                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                 </svg>
+-                Archive Task
++                归档任务
+               </button>
+             </div>
+           )}
+@@ -1966,7 +1967,7 @@
+       disabled={disabled}
+     >
+       {options.map((s) => (
+-        <option key={s} value={s}>{s}</option>
++        <option key={s} value={s}>{uiLabel(s)}</option>
+       ))}
+     </select>
+   );
+--- a/src/web/components/TaskList.tsx
++++ b/src/web/components/TaskList.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import React, { useEffect, useMemo, useRef, useState } from "react";
+ import { useSearchParams } from "react-router-dom";
+ import { apiClient } from "../lib/api";
+@@ -157,7 +158,7 @@
+ 	const [sortColumn, setSortColumn] = useState<TaskSortColumn>("id");
+ 	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+ 	const priorityOptions = useMemo(
+-		() => [{ label: "All priorities", value: "" }, ...getPriorityOptions(availablePriorities)],
++		() => [{ label: "全部优先级", value: "" }, ...getPriorityOptions(availablePriorities)],
+ 		[availablePriorities],
+ 	);
+ 	const tableHeaderScrollRef = useRef<HTMLDivElement | null>(null);
+@@ -424,7 +425,7 @@
+ 				console.error("Failed to apply task filters:", err);
+ 				if (!cancelled) {
+ 					setDisplayTasks([]);
+-					setError("Unable to fetch tasks for the selected filters.");
++					setError("无法获取符合筛选条件的任务。");
+ 				}
+ 			}
+ 		};
+@@ -710,12 +711,12 @@
+ 		<div className="page-shell transition-colors duration-200">
+ 			<div className="flex flex-col gap-4 mb-6">
+ 				<div className="flex items-center justify-between gap-3">
+-						<h1 className="text-2xl font-bold text-gray-900 dark:text-white">All Tasks</h1>
++						<h1 className="text-2xl font-bold text-gray-900 dark:text-white">全部任务</h1>
+ 						<button
+ 							className="inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 dark:focus:ring-offset-gray-900 transition-colors duration-200"
+ 							onClick={onNewTask}
+ 						>
+-							+ New Task
++							+ 新建任务
+ 					</button>
+ 				</div>
+ 
+@@ -726,10 +727,10 @@
+ 								selectedLabels={statusFilter}
+ 								onChange={handleStatusChange}
+ 								menuId="task-list-status-menu"
+-								label="Status"
+-								emptyLabel="All"
+-								noOptionsLabel="No statuses"
+-								clearLabel="Clear status filter"
++								label="状态"
++								emptyLabel="全部"
++								noOptionsLabel="暂无状态"
++								clearLabel="清除状态筛选"
+ 								className="min-w-[180px]"
+ 							/>
+ 
+@@ -738,10 +739,10 @@
+ 								selectedLabels={excludedStatusFilter}
+ 								onChange={handleExcludeStatusChange}
+ 								menuId="task-list-exclude-status-menu"
+-								label="Exclude status"
+-								emptyLabel="None"
+-							noOptionsLabel="No statuses"
+-							clearLabel="Clear excluded statuses"
++								label="排除状态"
++								emptyLabel="无"
++							noOptionsLabel="暂无状态"
++							clearLabel="清除排除状态"
+ 							className="min-w-[210px]"
+ 						/>
+ 
+@@ -752,7 +753,7 @@
+ 						>
+ 							{priorityOptions.map((option) => (
+ 								<option key={option.value || "all"} value={option.value}>
+-									{option.label}
++									{uiLabel(option.label)}
+ 								</option>
+ 							))}
+ 						</select>
+@@ -762,8 +763,8 @@
+ 							onChange={(event) => handleMilestoneChange(event.target.value)}
+ 							className="min-w-[160px] h-10 py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200"
+ 						>
+-							<option value="">All milestones</option>
+-							<option value="__none">No milestone</option>
++							<option value="">全部里程碑</option>
++							<option value="__none">无里程碑</option>
+ 							{milestoneOptions.map((milestone) => (
+ 								<option key={milestone} value={milestone}>
+ 									{getMilestoneLabel(milestone, milestoneEntities)}
+@@ -786,7 +787,7 @@
+ 									type="button"
+ 									onClick={() => setShowCleanupModal(true)}
+ 									className="py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+-									title="Clean up old completed tasks"
++									title="收起已完成的旧任务"
+ 								>
+ 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+ 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+@@ -801,7 +802,7 @@
+ 									onClick={handleClearFilters}
+ 									className="py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg whitespace-nowrap transition-colors duration-200 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+ 								>
+-									Clear filters
++									清除筛选
+ 								</button>
+ 							)}
+ 
+@@ -824,12 +825,12 @@
+ 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+ 					</svg>
+ 					<h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+-						{hasActiveFilters ? "No tasks match the current filters" : "No tasks"}
++						{hasActiveFilters ? "没有符合筛选条件的任务" : "暂无任务"}
+ 					</h3>
+ 					<p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+ 						{hasActiveFilters
+-							? "Try adjusting your search or clearing filters to see more tasks."
+-							: "Get started by creating a new task."}
++							? "可调整或清除筛选条件。"
++							: "创建一条任务即可开始。"}
+ 					</p>
+ 				</div>
+ 			) : (
+@@ -841,14 +842,14 @@
+ 								<thead>
+ 									<tr className="text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+ 										{renderSortableHeader("ID", "id")}
+-										{renderSortableHeader("Title", "title")}
+-										{renderSortableHeader("Status", "status")}
+-										{renderSortableHeader("Priority", "priority")}
+-										{renderSortableHeader("Ordinal", "ordinal")}
+-										<th className="px-3 py-2">Labels</th>
+-										<th className="px-3 py-2">Assignee</th>
+-										{renderSortableHeader("Milestone", "milestone")}
+-										{renderSortableHeader("Created", "created")}
++										{renderSortableHeader("标题", "title")}
++										{renderSortableHeader("状态", "status")}
++										{renderSortableHeader("优先级", "priority")}
++										{renderSortableHeader("排序", "ordinal")}
++										<th className="px-3 py-2">标签</th>
++										<th className="px-3 py-2">负责人</th>
++										{renderSortableHeader("里程碑", "milestone")}
++										{renderSortableHeader("创建时间", "created")}
+ 									</tr>
+ 								</thead>
+ 							</table>
+@@ -893,7 +894,7 @@
+ 																: "text-gray-900 dark:text-gray-100"
+ 														} rounded text-left focus:outline-none focus:ring-2 focus:ring-stone-500`}
+ 														title={task.title}
+-														aria-label={`Open ${task.id}: ${task.title}`}
++														aria-label={`打开 ${task.id}：${task.title}`}
+ 													>
+ 														{task.title}
+ 													</button>
+@@ -909,13 +910,13 @@
+ 												<AcceptanceCriteriaProgress task={task} density="list" className="mt-1" />
+ 												{task.dueDate && (
+ 													<div className="mt-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+-														Due: <StoredDate value={task.dueDate} dateFormat={dateFormat} />
++														截止： <StoredDate value={task.dueDate} dateFormat={dateFormat} />
+ 													</div>
+ 												)}
+ 											</td>
+ 											<td className="px-3 py-2.5">
+ 												<span className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getStatusColor(task.status)}`}>
+-													{task.status}
++													{uiLabel(task.status)}
+ 												</span>
+ 											</td>
+ 											<td className="px-3 py-2.5">
+--- a/src/web/components/TaskTypeBadge.tsx
++++ b/src/web/components/TaskTypeBadge.tsx
+@@ -1,3 +1,4 @@
++import { uiLabel } from "../utils/labels-zh";
+ import type React from "react";
+ 
+ const TYPE_BADGE_PALETTES = [
+@@ -77,10 +78,10 @@
+ 	return (
+ 		<span
+ 			data-task-type={label}
+-			title={`Task type: ${label}`}
++			title={`任务类型：${uiLabel(label)}`}
+ 			className={`inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-4 ${TYPE_BADGE_PALETTES[getPaletteIndex(label, availableTypes)]} ${className}`}
+ 		>
+-			<span className="truncate">{label}</span>
++			<span className="truncate">{uiLabel(label)}</span>
+ 		</span>
+ 	);
+ };
+--- a/src/web/components/ThemeToggle.tsx
++++ b/src/web/components/ThemeToggle.tsx
+@@ -8,8 +8,8 @@
+ 			<button
+ 				onClick={toggleTheme}
+ 				className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2 dark:focus:ring-stone-400 dark:focus:ring-offset-gray-900"
+-				aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+-				title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
++				aria-label={`切换为${theme === 'light' ? '深色' : '浅色'}模式`}
++				title={`切换为${theme === 'light' ? '深色' : '浅色'}模式`}
+ 			>
+ 			{theme === 'light' ? (
+ 				// Moon icon - show when in light mode (to switch to dark)
+--- a/src/web/index.html
++++ b/src/web/index.html
+@@ -1,10 +1,10 @@
+ <!DOCTYPE html>
+-<html lang="en">
++<html lang="zh-CN">
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <base href="/">
+-    <title>Backlog.md - Task Management</title>
++    <title>Project Inbox - 任务管理</title>
+     <link rel="icon" type="image/png" href="./favicon.png">
+     <link rel="stylesheet" href="./styles/source.css">
+     <script data-backlog-shell-refresh>
+--- a/src/web/utils/date-display.ts
++++ b/src/web/utils/date-display.ts
+@@ -174,9 +174,9 @@
+ 	const diffDays = todayLocal ? calendarDaysBetween(localDate, todayLocal) : null;
+ 
+ 	if (diffDays !== null && diffDays >= 0 && diffDays < 7) {
+-		if (diffDays === 0) return { text: "today", title };
+-		if (diffDays === 1) return { text: "yesterday", title };
+-		return { text: `${diffDays}d ago`, title };
++		if (diffDays === 0) return { text: "今天", title };
++		if (diffDays === 1) return { text: "昨天", title };
++		return { text: `${diffDays} 天前`, title };
+ 	}
+ 
+ 	// Absolute fallback stays compact: the date portion only, in the viewer's timezone.
+--- /dev/null
++++ b/src/web/utils/labels-zh.ts
+@@ -0,0 +1,9 @@
++/** 仅用于显示；持久化状态、类型和表单 value 保持原值。 */
++const labels: Record<string, string> = {
++	Inbox: "收件箱", "To Do": "待办", "In Progress": "进行中", Blocked: "受阻", Done: "已完成", Draft: "草稿",
++	bug: "缺陷", feature: "功能需求", improvement: "改进", investigation: "待调查", idea: "想法",
++	"All priorities": "全部优先级", "All statuses": "全部状态", "No Priority": "未设优先级",
++	"No milestone": "无里程碑", "No Milestone": "无里程碑", "No type": "未设类型",
++	Task: "任务", Document: "文档", Decision: "决策", High: "高", Medium: "中", Low: "低",
++};
++export const uiLabel = (value: string): string => labels[value] ?? value;

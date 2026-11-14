@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.pytest_cache/
+data/
+config/projects.yaml
+config/cherry-studio*.json
+config/settings.yaml
+config/launchagents/
+.inbox.lock
+node_modules/
+backlog/
+work/
+vendor/backlog-source/
+vendor/backlog-runtime/
+.playwright-mcp/
+.DS_Store
+visuals/

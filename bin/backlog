@@ -1,0 +1,4 @@
+#!/bin/sh
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+export BACKLOG_CWD="$ROOT_DIR"
+exec "$ROOT_DIR/vendor/backlog-runtime/backlog" "$@"

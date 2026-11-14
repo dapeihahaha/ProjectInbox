@@ -1,0 +1,19 @@
+projects:
+- id: demo-project-1a2b3c4d5e
+  name: demo-project
+  aliases: []
+  keywords: []
+  description: Example project configuration.
+  enabled: true
+  path: ~/selfapp/demo-project
+  worktrees: []
+  common_dirs:
+  - ~/selfapp/demo-project/.git
+  remotes:
+  - git@github.com:example/demo-project.git
+  missing: false
+  last_active: '2026-11-01T00:00:00.000000+00:00'
+  activity_sources:
+  - codex
+  time_bases:
+  - session_file_mtime

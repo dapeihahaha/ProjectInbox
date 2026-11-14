@@ -1,0 +1,12 @@
+{
+  "name": "project-inbox-runtime",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Project Inbox 的本地 Backlog.md 看板运行时",
+  "dependencies": {
+    "backlog.md": "1.53.0"
+  },
+  "devDependencies": {
+    "bun": "1.4.3"
+  }
+}

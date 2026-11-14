@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "project-inbox"
+version = "0.1.0"
+description = "本地 Markdown 项目任务收件箱"
+requires-python = ">=3.11,<3.15"
+dependencies = ["mcp==2.3.0", "PyYAML==6.0.3"]
+
+[project.scripts]
+project-inbox = "server.cli:main"
+project-inbox-mcp = "server.main:main"
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

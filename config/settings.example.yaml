@@ -1,0 +1,11 @@
+# 唯一数据根目录由安装位置决定，MCP 不允许从工具参数修改。
+scan_roots:
+  - ~/Desktop/projects
+  - ~/localissue
+  - ~/selfapp
+max_depth: 4
+timezone: Asia/Shanghai
+activity_sources:
+  codex: ~/.codex/state_5.sqlite
+  claude: ~/.claude/sessions
+  pi: ~/.pi/agent/sessions
