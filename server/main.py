@@ -8,6 +8,8 @@ from mcp.server.mcpserver.exceptions import ToolError
 from .project_registry import Registry
 from .task_manager import TaskManager
 from .backlog import sync_projects
+from .contract import handoff_template
+from .flow import Flow
 
 
 def default_root():
@@ -24,9 +26,10 @@ def invoke(operation, *args, **kwargs):
 
 
 def build_server(root):
-    tasks=TaskManager(root)
+    flow=Flow(root)
+    tasks=flow.tasks
     registry=Registry(root)
-    mcp=MCPServer('Project Inbox',instructions='本地项目任务收件箱。项目不明确可进入全局 inbox；先查重复再创建；不自动合并。',log_level='WARNING')
+    mcp=MCPServer('Project Inbox',instructions='本地项目任务收件箱。项目不明确可进入全局 inbox；先查重复再创建；不自动合并。讨论结束用 get_handoff_template + submit_handoff 交交接单；执行会话用 claim_tasks 领取，做完用 submit_report 汇报。状态只能通过这几个工具推进，验收和退回只有用户能做。',log_level='WARNING')
 
     @mcp.tool()
     def list_projects() -> list[dict]:
@@ -55,8 +58,8 @@ def build_server(root):
 
     @mcp.tool()
     def update_task(task_id: str,changes: dict) -> dict:
-        """修改指定字段；changes 可含 title/description/status/priority/tags/project_id/type/expected_behavior/reproduction_steps/notes/commits。project_id=null 移至全局 inbox。"""
-        return invoke(tasks.update_task, task_id,**changes)
+        """修改指定字段；changes 可含 title/description/priority/tags/project_id/type/expected_behavior/reproduction_steps/notes/commits。不能改 status：状态只走 claim_tasks / submit_report / release_task。notes 只能追加（原内容保留在前）。project_id=null 移至全局 inbox。"""
+        return invoke(flow.agent_update, task_id,changes)
 
     @mcp.tool()
     def find_duplicates(title: str,project_id: str | None=None,description: str='',limit: int=5) -> list[dict]:
@@ -79,6 +82,36 @@ def build_server(root):
     def get_project_tasks(project_id: str,status: str | None=None,limit: int=50) -> list[dict]:
         """列出项目任务，可按状态筛选。"""
         return invoke(tasks.get_project_tasks, project_id,status,limit)
+
+    @mcp.tool()
+    def get_handoff_template() -> dict:
+        """交接单 handoff/v1 的空表、字段说明和填好的样例。讨论会话结束前先调用它。"""
+        return handoff_template()
+
+    @mcp.tool()
+    def submit_handoff(handoff: dict,author: str) -> dict:
+        """提交交接单。缺字段直接退回并说明怎么补；合格就建卡（或带 task_id 补到已有卡）并放进待办。有 open_questions 时留在收件箱、标「待确认」。author 填你自己的名字，例如 claude-code。"""
+        return invoke(flow.submit_handoff, handoff,author)
+
+    @mcp.tool()
+    def claim_tasks(agent: str,task_ids: list[str] | None=None,project_id: str | None=None,limit: int=1) -> dict:
+        """领取待办里带合格交接单的卡：按编号领，或按项目领前 limit 张（最多 5）。程序在项目的 .worktrees/task-编号 建好工作区并返回领取包（交接单、工作区路径、截图目录、规矩、空汇报单）。同一张卡不能被两个会话同时领。"""
+        return invoke(flow.claim_tasks, agent,task_ids,project_id,limit)
+
+    @mcp.tool()
+    def release_task(task_id: str,reason: str,agent: str) -> dict:
+        """做不了时把卡放回待办，必须写原因。工作区保留，下次领取沿用。"""
+        return invoke(flow.release_task, task_id,reason,agent)
+
+    @mcp.tool()
+    def get_report_template(task_id: str) -> dict:
+        """某张卡的汇报单 report/v1 空表和样例，验收编号已按交接单填好。"""
+        return invoke(flow.report_template, task_id)
+
+    @mcp.tool()
+    def submit_report(report: dict,agent: str) -> dict:
+        """交汇报单。程序当场检查格子、截图文件、任务分支上的提交和未提交改动，并在工作区重跑交接单的测试命令；全部通过才进待验收，不过就拒收并说明原因，卡片停在进行中。outcome=blocked 时标为受阻。"""
+        return invoke(flow.submit_report, report,agent)
 
     return mcp
 

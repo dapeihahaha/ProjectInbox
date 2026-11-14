@@ -8,6 +8,27 @@ from .task_manager import TaskManager
 HANDOFF_MODES = {'execute', 'research'}
 
 
+def claim_handoff(cli, tasks, deploy=False):
+    """带交接单的卡：规矩已经由程序执行，指令只剩领取包的几步。"""
+    ids = [task['id'] for task in tasks]
+    names = '、'.join(ids)
+    lines = '\n'.join(f"- {task['id']}：{task['title']}" for task in tasks)
+    note = '\n本组任务走交接单流程：合并在我验收通过时由程序完成，「完成后直接合并部署」对它们不生效。' if deploy else ''
+    text = f"""请领取并执行 Project Inbox 的 {len(tasks)} 个任务：{names}。全程用中文和我沟通。
+{lines}
+
+1. 领取：有 Project Inbox 的 MCP 工具就调用 claim_tasks（agent 填你的名字，task_ids 填上面的编号）；没有就运行
+{cli} claim {' '.join(shlex.quote(i) for i in ids)} --agent <你的名字>
+返回的领取包里有交接单、工作区路径（workspace）、截图目录（evidence_dir）和空汇报单。领取被拒绝就停下告诉我原因。
+2. 只在 workspace 里改代码并 git commit，不要另建 worktree 或复制项目文件夹。按交接单的 scope 做，dont 里的不做，needs_approval 里的先问我。
+3. 按交接单 acceptance 逐条验证，截图存进 evidence_dir。
+4. 每张卡做完交汇报单：MCP 用 submit_report；命令行把填好的汇报单存成 YAML 后运行
+{cli} submit-report --file <汇报单.yaml> --agent <你的名字>
+程序会重跑测试、查截图和提交，不过就拒收，按提示改完再交。做不了就用 release_task（或 {cli} release <编号> --agent <你的名字> --reason <原因>）放回。
+5. 不要合并、推送、部署，也不要改任务状态；验收和合并由我来做。最后告诉我每张卡是否进了待验收、在哪里看效果。{note}"""
+    return {'text': text}
+
+
 def agent_handoff(root, task_ids, deploy=False, mode='execute'):
     if mode not in HANDOFF_MODES:
         raise ValueError('交接模式必须是 execute 或 research')
@@ -31,6 +52,10 @@ def agent_handoff(root, task_ids, deploy=False, mode='execute'):
         raise ValueError('归档任务只读，不能交付执行；请移除 '+ '、'.join(archived) +' 后重新复制')
     projects = Registry(root).list_projects()
     cli = shlex.join([str(Path(__file__).resolve().parents[1] / 'bin/project-inbox'), '--home', str(Path(root).resolve())])
+    if mode == 'execute':
+        records = manager.store.safe('work/handoffs')
+        if all((records / f"{task['id']}.yaml").is_file() for task in tasks):
+            return claim_handoff(cli, tasks, deploy)
     groups = {}
     for task in tasks:
         groups.setdefault(task['project'], []).append(task)
