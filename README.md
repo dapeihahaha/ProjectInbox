@@ -19,6 +19,20 @@
 
 已安装 `/Users/wangyichuan/.local/bin/project-inbox`。PATH 包含该目录时可直接使用；`TASK-ID` 须替换为实际编号。
 
+2026-11 起新增交接单流程：讨论结束交交接单、执行会话领取、做完交汇报单，程序检查格式、建工作区、重跑测试；验收和退回只有你能做。说明见 [交接单流程](docs/handoff-flow.md)。
+
+```bash
+project-inbox handoff-template
+project-inbox submit-handoff --file 交接单.yaml --author pi
+project-inbox claim TASK-ID --agent codex
+project-inbox submit-report --file 汇报单.yaml --agent codex
+project-inbox accept TASK-ID
+project-inbox reject TASK-ID --comment "意见"
+project-inbox cancel TASK-ID
+project-inbox workspace scan
+project-inbox workspace clean          # 预演；加 --apply 才执行
+```
+
 ```bash
 project-inbox projects
 project-inbox list --project newn8nbase --status todo

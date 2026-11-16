@@ -32,7 +32,11 @@ async def verify_roundtrip(root):
         assert got['status']=='done'
         archived=await call('archive_task',{'task_id':task_id})
         assert archived['status']=='archived'
+        template=await call('get_handoff_template',{})
+        assert template['version']=='handoff/v1'
+        locked=await client.call_tool('update_task',{'task_id':task_id,'changes':{'status':'in_progress'}})
+        assert locked.is_error and '状态不能用 update_task' in locked.content[0].text
         bad=await client.call_tool('get_task',{'task_id':'../../outside'})
         assert bad.is_error
         assert '无效任务 ID' in bad.content[0].text
-    return {'ok':True,'tools':names,'cli_mcp_shared_task':True,'path_traversal_rejected':True}
+    return {'ok':True,'tools':names,'cli_mcp_shared_task':True,'path_traversal_rejected':True,'status_locked_for_agents':True}

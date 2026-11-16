@@ -176,4 +176,6 @@ def test_stdio_cli_roundtrip(system):
     from server.verify import verify_roundtrip
     manager, _, _=system
     result=asyncio.run(verify_roundtrip(manager.root))
-    assert result['ok'] and len(result['tools'])==10
+    assert result['ok'] and len(result['tools'])==16 and result['status_locked_for_agents']
+    assert {'get_handoff_template','submit_handoff','claim_tasks','release_task','get_report_template','submit_report'}<=set(result['tools'])
+    assert not {'accept','reject','cancel'}&set(result['tools'])

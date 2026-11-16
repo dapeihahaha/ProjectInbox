@@ -76,7 +76,12 @@ class TaskManager:
         project_id=mapped[0]['id'] if len(mapped)==1 else project
         created=self._time(meta.get('created_date'))
         if created is None:raise ValueError('缺少创建时间')
-        return dict(id=task_id,title=title,project=project_id,project_name=project,type=meta.get('type') or 'bug',status=status,priority=str(meta.get('priority') or 'p2').upper(),created_at=created,updated_at=self._time(meta.get('updated_date')) or created,tags=meta.get('labels',[]),description=desc,expected_behavior=expected,reproduction_steps=steps,notes=self._section(body,'NOTES'),commits=[r[7:] for r in meta.get('references',[]) if isinstance(r,str) and r.startswith('commit:')],path=str(self.store.safe(path)),content=raw)
+        return dict(id=task_id,title=title,project=project_id,project_name=project,type=meta.get('type') or 'bug',status=status,priority=str(meta.get('priority') or 'p2').upper(),created_at=created,updated_at=self._time(meta.get('updated_date')) or created,tags=meta.get('labels',[]),description=desc,expected_behavior=expected,reproduction_steps=steps,notes=self._section(body,'NOTES'),plan=self._section(body,'PLAN'),final_summary=self._section(body,'FINAL_SUMMARY'),acceptance=self._acceptance(body),assignee=[str(a) for a in meta.get('assignee') or []],commits=[r[7:] for r in meta.get('references',[]) if isinstance(r,str) and r.startswith('commit:')],path=str(self.store.safe(path)),content=raw)
+
+    def _acceptance(self,body):
+        match=re.search(r'<!-- AC:BEGIN -->\n?(.*?)<!-- AC:END -->',body,re.S)
+        if not match:return []
+        return [dict(index=int(m[2]),checked=m[1]=='x',text=m[3].strip()) for m in re.finditer(r'^- \[([ x])\] #([0-9]+) (.*)$',match[1],re.M)]
 
     def scan(self):
         tasks,issues,seen=[],[],set()
@@ -122,14 +127,18 @@ class TaskManager:
         task=dict(title=title,type=type,status='todo' if project else 'inbox',priority=priority,tags=[] if tags is None else tags,description=description,expected_behavior=expected_behavior,reproduction_steps=reproduction_steps)
         self._validate(task)
         with self.store.lock():
-            self.healthy_tasks()
-            args=['task','create','--plain','--type='+type,'--status='+STATES[task['status']],'--priority='+priority,'--description='+self._description(description,expected_behavior,reproduction_steps)]
-            if project:args.append('--project='+project['name'])
-            if task['tags']:args.append('--labels='+','.join(task['tags']))
-            output=self.backend.run(*args,'--',title)
-            match=re.search(r'\b(TASK-[0-9]+(?:\.[0-9]+)*)\b',output)
-            if not match:raise ValueError('未从 Backlog 响应获得 ID，请查询后再重试')
-            return self.get_task(match[1],_locked=True)
+            return self.get_task(self._create(task,project),_locked=True)
+
+    def _create(self,task,project,extra=()):
+        """调用方已持有锁且已校验字段；返回新任务 ID。"""
+        self.healthy_tasks()
+        args=['task','create','--plain','--type='+task['type'],'--status='+STATES[task['status']],'--priority='+task['priority'],'--description='+self._description(task['description'],task.get('expected_behavior',''),task.get('reproduction_steps',''))]
+        if project:args.append('--project='+project['name'])
+        if task['tags']:args.append('--labels='+','.join(task['tags']))
+        output=self.backend.run(*args,*extra,'--',task['title'])
+        match=re.search(r'\b(TASK-[0-9]+(?:\.[0-9]+)*)\b',output)
+        if not match:raise ValueError('未从 Backlog 响应获得 ID，请查询后再重试')
+        return match[1]
 
     def get_task(self,task_id,_locked=False):
         self._id(task_id)
