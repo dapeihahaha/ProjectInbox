@@ -81,9 +81,7 @@ def main():
             from .handoff import agent_handoff
             result=agent_handoff(root,args['task_ids'],args['deploy'],args['mode'])
         elif command=='create': result=tasks.create_task(**args)
-        elif command=='done':
-            flow.guard_done(args['task_id'])
-            result=tasks.update_task(args['task_id'],status='done')
+        elif command=='done': result=flow.done(args['task_id'])
         elif command=='handoff-template': result=handoff_template()
         elif command=='submit-handoff': result=flow.submit_handoff(read_form(args['file']),args['author'])
         elif command=='claim': result=flow.claim_tasks(args['agent'],args['task_ids'] or None,args['project_id'],args['limit'])

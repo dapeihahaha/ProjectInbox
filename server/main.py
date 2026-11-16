@@ -68,8 +68,8 @@ def build_server(root):
 
     @mcp.tool()
     def archive_task(task_id: str) -> dict:
-        """归档任务，保留 ID 和文件，不永久删除。"""
-        return invoke(tasks.archive_task, task_id)
+        """归档任务，保留 ID 和文件，不永久删除。带交接单且未完成的卡不能归档，只能由用户取消。"""
+        return invoke(flow.agent_archive, task_id)
 
     @mcp.tool()
     def refresh_projects() -> dict:

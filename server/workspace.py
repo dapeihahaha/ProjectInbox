@@ -109,11 +109,13 @@ def state(workspace, base_commit):
     """工作区的事实：当前提交、base 之后的新提交、没提交的改动。程序自己读，不信 agent 写的。"""
     path = Path(workspace)
     if not path.is_dir():
-        return dict(exists=False, head='', commits=[], dirty=[])
+        return dict(exists=False, head='', branch='', commits=[], dirty=[])
     head = git(path, 'rev-parse', 'HEAD')
+    current = git(path, 'symbolic-ref', '--quiet', '--short', 'HEAD', check=False)
+    branch = current.stdout.strip() if current.returncode == 0 else ''
     log = git(path, 'log', '--format=%h %s', f'{base_commit}..HEAD') if base_commit else ''
     dirty = [line for line in git(path, 'status', '--porcelain', '--untracked-files=all').splitlines() if line.strip()]
-    return dict(exists=True, head=head, commits=[l for l in log.splitlines() if l.strip()], dirty=dirty)
+    return dict(exists=True, head=head, branch=branch, commits=[l for l in log.splitlines() if l.strip()], dirty=dirty)
 
 
 def merge_fast_forward(repo, branch, base_branch):

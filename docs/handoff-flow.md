@@ -42,23 +42,26 @@ flowchart LR
 `submit_report` 先查格子（每条验收 A1、A2……都要有结果，「未测」必须写原因，要有 Mermaid 流程图），再查事实：
 
 1. 截图文件真的在 `work/evidence/TASK-N/` 里，而且不是空文件；
-2. 任务分支上有新提交，工作区没有没提交的改动（返工时必须比上次汇报多出新提交）；
-3. 程序自己在工作区重跑交接单的测试命令（默认限时 900 秒，可在 `config/settings.yaml` 设 `verify_timeout_seconds`）。
+2. 工作区停在任务分支 `task-N` 上（切到别的分支提交会被拒收），任务分支上有新提交，工作区没有没提交的改动（返工时必须比上次汇报多出新提交）；
+3. 程序自己在工作区重跑交接单的测试命令（默认限时 900 秒，可在 `config/settings.yaml` 设 `verify_timeout_seconds`；超时后有脱离控制的后台进程占着输出时，最多再等 10 秒就放弃读取，不会卡死）。
 
 全部通过才进待验收，汇报内容和核验结果写进卡片的「最终总结」，验收勾选框按结果打勾。不过就拒收，卡片停在进行中，原因写进 notes。
+
+汇报 `blocked` 时卡片标为受阻，领取随之结束（工作区保留）。你答复后带上 `task_id` 重新提交交接单，卡片回到待办，下次领取沿用同一个工作区。
 
 ## 只有你能做的三件事（命令行，不进 MCP）
 
 ```bash
 project-inbox accept TASK-N              # 验收通过：快进合并到主分支，删工作区，分支保留
 project-inbox accept TASK-N --no-merge   # 只标完成，不动 git
+project-inbox done TASK-N                # 同 --no-merge：只标完成、不合并；之后仍可用 accept 补做合并
 project-inbox reject TASK-N --comment "橙色太刺眼"   # 原卡归档并标「已退回」，生成返工卡，沿用同一个工作区
 project-inbox cancel TASK-N --reason "不做了"        # 删干净的工作区，分支保留，卡片归档
 ```
 
-主分支在这期间动过、没法快进时，`accept` 不会硬合，会提示你用 `reject` 让 agent 先更新到最新主分支。工作区有没提交的改动时，`accept` 和 `cancel` 都会拒绝，不会丢东西。
+主分支在这期间动过、没法快进时，`accept` 不会硬合，会提示你用 `reject` 让 agent 先更新到最新主分支。工作区有没提交的改动、或不在任务分支上时，`accept` 会拒绝；有没提交的改动时 `cancel` 也会拒绝，不会丢东西。合并已完成但工作区删不掉时，卡片照常标完成，原因写进结果和 notes，工作区留着手动处理。
 
-agent 那边：MCP 的 `update_task` 不能再改状态，notes 只能往后追加；命令行 `update` 不能标完成，也不能改正在领取中的卡的状态。
+agent 那边：MCP 的 `update_task` 不能再改状态，notes 只能往后追加；带交接单的卡不能改项目，「交接单 / 待确认 / 已退回 / 已取消」这几个标签不能增删；MCP 的 `archive_task` 不能归档带交接单且未完成的卡；命令行 `update` 不能标完成，也不能改正在领取中的卡的状态。
 
 ## 清理旧文件夹
 

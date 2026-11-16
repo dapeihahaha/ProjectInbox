@@ -256,3 +256,97 @@ def test_install_skill_writes_claude_skill_without_overwriting(tmp_path):
     assert install(['claude'], home=tmp_path / 'inbox', user_home=home)[0]['action'] == '已是最新'
     skill.write_text('my own skill')
     assert '未覆盖' in install(['claude'], home=tmp_path / 'inbox', user_home=home)[0]['action'] and skill.read_text() == 'my own skill'
+
+
+# ---------- 评审修复的回归测试 ----------
+
+def test_report_refused_when_commits_are_on_another_branch(flow):
+    f, _ = flow
+    task_id = f.submit_handoff(handoff(), 'claude-code')['task_id']
+    workspace = Path(f.claim_tasks('codex', [task_id])['claimed'][0]['workspace'])
+    git(workspace, 'switch', '-q', '-c', 'side')
+    commit(workspace)
+    shot(f, task_id)
+    result = f.submit_report(report(task_id), 'codex')
+    assert not result['accepted'] and any('不是任务分支' in p for p in result['problems'])
+    git(workspace, 'switch', '-q', task_id.lower())
+    git(workspace, 'merge', '-q', '--ff-only', 'side')
+    assert f.submit_report(report(task_id), 'codex')['accepted']
+    git(workspace, 'switch', '-q', 'side')
+    with pytest.raises(ValueError, match='不是任务分支'):
+        f.accept(task_id)
+
+
+def test_blocked_card_can_be_handed_off_and_claimed_again(flow):
+    f, _ = flow
+    task_id = f.submit_handoff(handoff(), 'claude-code')['task_id']
+    workspace = f.claim_tasks('codex', [task_id])['claimed'][0]['workspace']
+    f.submit_report(dict(task=task_id, outcome='blocked', blocked_reason='需要测试账号', summary='做到一半', acceptance={a: {'result': '未测', 'note': '受阻'} for a in ['A1', 'A2', 'A3', 'A4']}, where_to_see='无', deviations='无'), 'codex')
+    assert not f.claim(task_id)['active'] and f.consistency() == []
+    again = f.submit_handoff(handoff(task_id=task_id, decisions=['测试账号已给']), 'claude-code')
+    assert again['status'] == 'todo'
+    pack = f.claim_tasks('claude-code', [task_id])['claimed'][0]
+    assert pack['workspace'] == workspace
+
+
+def test_agent_cannot_archive_or_relabel_handoff_cards(flow):
+    f, _ = flow
+    task_id = f.submit_handoff(handoff(), 'claude-code')['task_id']
+    f.claim_tasks('codex', [task_id])
+    with pytest.raises(ValueError, match='不能由 agent 归档'):
+        f.agent_archive(task_id)
+    with pytest.raises(ValueError, match='由程序维护'):
+        f.agent_update(task_id, {'tags': []})
+    with pytest.raises(ValueError, match='不能改项目'):
+        f.agent_update(task_id, {'project_id': None})
+    assert f.agent_update(task_id, {'tags': ['交接单', '界面']})['tags'] == ['交接单', '界面']
+    plain = f.tasks.create_task(project_id='editr', title='旧卡')
+    assert f.agent_archive(plain['id'])['status'] == 'archived'
+
+
+def test_accept_finishes_even_if_workspace_cannot_be_removed(flow, monkeypatch):
+    f, project = flow
+    task_id, workspace = finished(f)
+
+    def refuse(repo, path):
+        raise ValueError('工作区被锁定')
+    monkeypatch.setattr('server.flow.ws.remove_worktree', refuse)
+    result = f.accept(task_id)
+    assert result['merged'] and not result['workspace_removed'] and '锁定' in result['warning']
+    assert (project / 'feature.txt').exists() and f.tasks.get_task(task_id)['status'] == 'done'
+
+
+def test_failed_status_edit_leaves_no_claim(flow, monkeypatch):
+    f, _ = flow
+    task_id = f.submit_handoff(handoff(), 'claude-code')['task_id']
+    original = f._edit
+
+    def broken(tid, *args):
+        if '--status' in args:
+            raise ValueError('Backlog 写入失败')
+        return original(tid, *args)
+    monkeypatch.setattr(f, '_edit', broken)
+    with pytest.raises(ValueError, match='Backlog 写入失败'):
+        f.claim_tasks('codex', [task_id])
+    assert f.claim(task_id) is None and f.tasks.get_task(task_id)['status'] == 'todo'
+
+
+def test_done_marks_without_merging_then_accept_can_merge(flow):
+    f, project = flow
+    task_id, workspace = finished(f)
+    base = [sys.executable, '-m', 'server.cli', '--home', str(f.root)]
+    done = subprocess.run(base + ['done', task_id], capture_output=True, text=True)
+    assert done.returncode == 0 and not json.loads(done.stdout)['merged']
+    assert f.tasks.get_task(task_id)['status'] == 'done' and not (project / 'feature.txt').exists() and workspace.is_dir()
+    result = f.accept(task_id)
+    assert result['merged'] and (project / 'feature.txt').exists()
+    with pytest.raises(ValueError, match='只有待验收'):
+        f.accept(task_id)
+
+
+def test_test_timeout_does_not_hang_on_detached_background_process(tmp_path, monkeypatch):
+    from server import checks
+    monkeypatch.setattr(checks, 'DRAIN_SECONDS', 1)
+    command = "perl -MPOSIX -e 'setsid(); sleep 5' & sleep 30"
+    passed, output, seconds = checks.run_tests(tmp_path, command, 1)
+    assert passed is False and '没跑完' in output and seconds < 5
